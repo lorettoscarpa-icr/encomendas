@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Encomendas — Loretto Scarpa</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase (compat 10.7.0) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    --verde:#4a5c2a;
+    --verde-esc:#3a4720;
+    --verde-fundo:#2f3a1a;
+    --gold:#c9a950;
+    --gold-claro:#e0c87f;
+    --creme:#f4efe3;
+    --creme-suave:#d8d0bd;
+    --vermelho:#b3402f;
+    --vermelho-bg:#5a2018;
+    --ambar:#d98c2b;
+    --ambar-bg:#4f3915;
+    --ok:#8ba35a;
+    --ok-bg:#3c4a22;
+    --linha:rgba(201,169,80,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Barlow',sans-serif;
+    background:var(--verde-fundo);
+    background-image:radial-gradient(circle at 18% -10%, rgba(201,169,80,.10), transparent 45%),
+                     radial-gradient(circle at 90% 0%, rgba(201,169,80,.06), transparent 40%);
+    color:var(--creme);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px 90px}
+
+  /* HEADER */
+  header{
+    border-bottom:1px solid var(--linha);
+    padding:26px 0 18px;
+    margin-bottom:8px;
+  }
+  .brand{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:4px}
+  .brand .lion{font-size:26px;letter-spacing:.4em;color:var(--gold);margin-bottom:2px}
+  .brand h1{
+    font-family:'Playfair Display',serif;font-weight:700;
+    font-size:clamp(22px,4.5vw,34px);color:var(--creme);
+    letter-spacing:.02em;line-height:1;
+  }
+  .brand .sub{
+    font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.35em;
+    text-transform:uppercase;color:var(--gold-claro);opacity:.85;margin-top:6px;
+  }
+
+  /* TABS */
+  .tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
+  .tab{
+    font-family:'Barlow';font-weight:600;font-size:14px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--creme-suave);
+    background:transparent;border:1px solid var(--linha);
+    padding:11px 20px;border-radius:2px;cursor:pointer;transition:.18s;
+  }
+  .tab:hover{border-color:var(--gold);color:var(--creme)}
+  .tab.active{background:var(--gold);color:var(--verde-fundo);border-color:var(--gold)}
+
+  .view{display:none;animation:fade .35s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* CARD / PANEL */
+  .panel{
+    background:var(--verde);border:1px solid var(--linha);
+    border-radius:4px;padding:24px;margin-top:18px;
+    box-shadow:0 18px 40px -28px rgba(0,0,0,.7);
+  }
+  .panel h2{
+    font-family:'Playfair Display',serif;font-weight:600;font-size:20px;
+    color:var(--gold-claro);margin-bottom:4px;
+  }
+  .panel .hint{font-size:13px;color:var(--creme-suave);margin-bottom:18px;opacity:.85}
+
+  /* FORM */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--gold-claro);margin-bottom:6px;font-weight:600}
+  input,select,textarea{
+    width:100%;font-family:'Barlow';font-size:15px;color:var(--creme);
+    background:var(--verde-esc);border:1px solid var(--linha);
+    border-radius:3px;padding:11px 13px;transition:.15s;
+  }
+  input::placeholder,textarea::placeholder{color:rgba(216,208,189,.45)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  textarea{resize:vertical;min-height:74px}
+  select option{background:var(--verde-esc);color:var(--creme)}
+  .full{grid-column:1/-1}
+
+  /* PHOTO */
+  .photo-zone{
+    grid-column:1/-1;border:1.5px dashed var(--linha);border-radius:4px;
+    padding:18px;text-align:center;cursor:pointer;transition:.18s;background:var(--verde-esc)
+  }
+  .photo-zone:hover{border-color:var(--gold)}
+  .photo-zone.has{padding:12px}
+  .photo-zone span{font-size:13px;color:var(--creme-suave)}
+  .photo-zone img{max-height:170px;border-radius:3px;margin-top:8px}
+
+  /* BUTTONS */
+  .btn{
+    font-family:'Barlow';font-weight:700;font-size:14px;letter-spacing:.05em;
+    text-transform:uppercase;cursor:pointer;border-radius:3px;padding:12px 22px;
+    border:1px solid var(--gold);background:var(--gold);color:var(--verde-fundo);transition:.18s;
+  }
+  .btn:hover{background:var(--gold-claro);border-color:var(--gold-claro)}
+  .btn.ghost{background:transparent;color:var(--gold-claro)}
+  .btn.ghost:hover{background:rgba(201,169,80,.12)}
+  .btn.sm{padding:8px 14px;font-size:12px}
+  .btn.danger{border-color:var(--vermelho);background:transparent;color:#e88}
+  .btn.danger:hover{background:rgba(179,64,47,.18)}
+
+  /* STATS */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+  .stat{flex:1;min-width:120px;background:var(--verde);border:1px solid var(--linha);
+    border-radius:4px;padding:14px 16px}
+  .stat .n{font-family:'DM Mono';font-size:26px;font-weight:500;color:var(--gold-claro)}
+  .stat .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--creme-suave);margin-top:2px}
+  .stat.alert .n{color:#f0a193}
+
+  /* FILTERS */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:18px 0}
+  .filters .f{flex:1;min-width:150px}
+
+  /* FACTORY GROUP */
+  .fab-group{margin-top:22px;border:1px solid var(--linha);border-radius:4px;overflow:hidden}
+  .fab-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    background:var(--verde-esc);padding:14px 18px;border-bottom:1px solid var(--linha)
+  }
+  .fab-head h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--creme)}
+  .fab-head .count{font-family:'DM Mono';font-size:12px;color:var(--gold-claro);
+    border:1px solid var(--linha);padding:2px 9px;border-radius:20px}
+  .fab-head .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .fab-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+
+  /* ORDER CARD */
+  .oc{background:var(--verde);border:1px solid var(--linha);border-radius:4px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border-left:4px solid var(--ok)}
+  .oc.st-atraso{border-left-color:var(--vermelho)}
+  .oc.st-atencao{border-left-color:var(--ambar)}
+  .oc.st-recebida{border-left-color:var(--gold);opacity:.78}
+  .oc-img{height:150px;background:var(--verde-esc);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .oc-img img{width:100%;height:100%;object-fit:cover}
+  .oc-img .ph{font-size:11px;color:var(--creme-suave);letter-spacing:.1em}
+  .oc-body{padding:13px 14px;flex:1;display:flex;flex-direction:column;gap:7px}
+  .oc-body .modelo{font-family:'Playfair Display',serif;font-size:17px;color:var(--creme);line-height:1.1}
+  .oc-row{font-size:13px;color:var(--creme-suave);display:flex;gap:6px}
+  .oc-row b{color:var(--gold-claro);font-weight:600;min-width:74px;font-size:11px;
+    letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
+  .oc-obs{font-size:13px;color:var(--creme-suave);font-style:italic;border-top:1px solid var(--linha);padding-top:7px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .badge{font-family:'DM Mono';font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.03em}
+  .b-dias{background:var(--ok-bg);color:#cfe0a3}
+  .b-dias.atraso{background:var(--vermelho-bg);color:#f3b4a8}
+  .b-dias.atencao{background:var(--ambar-bg);color:#f0cd92}
+  .b-vend{background:var(--verde-esc);color:var(--creme-suave);border:1px solid var(--linha)}
+  .b-pago{background:var(--ok-bg);color:#cfe0a3}
+  .b-parcial{background:var(--ambar-bg);color:#f0cd92}
+  .b-pend{background:var(--vermelho-bg);color:#f3b4a8}
+  .wlink{color:var(--gold-claro);text-decoration:none;border-bottom:1px dotted var(--gold)}
+  .sel-fab{border-color:var(--gold)!important}
+  .fab-group.nao-alocada{border-color:var(--ambar)}
+  .fab-group.nao-alocada .fab-head{background:var(--ambar-bg)}
+  .oc-foot{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--linha);flex-wrap:wrap}
+  .oc-foot select{padding:7px 8px;font-size:12px;flex:1;min-width:120px}
+  .icon-btn{background:transparent;border:1px solid var(--linha);color:var(--creme-suave);
+    border-radius:3px;padding:6px 9px;cursor:pointer;font-size:13px;transition:.15s}
+  .icon-btn:hover{border-color:var(--gold);color:var(--gold-claro)}
+  .icon-btn.del:hover{border-color:var(--vermelho);color:#e88}
+
+  .empty{text-align:center;padding:48px 20px;color:var(--creme-suave)}
+  .empty .lion{font-size:34px;color:var(--gold);opacity:.5;margin-bottom:10px}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
+  .num-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .num-btn{font-family:'DM Mono';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
+    background:var(--verde-esc);color:var(--creme-suave);border-radius:3px;cursor:pointer;transition:.12s}
+  .num-btn:hover{border-color:var(--gold)}
+  .num-btn.on{background:var(--gold);color:var(--verde-fundo);border-color:var(--gold);font-weight:600}
+  .oc-check{position:absolute;top:8px;left:8px;z-index:3;background:rgba(0,0,0,.45);border-radius:4px;padding:3px 5px;line-height:0}
+  .oc-check input{width:18px;height:18px;accent-color:var(--gold);cursor:pointer}
+  .bulk-bar{display:none;position:sticky;top:0;z-index:20;margin:14px 0 0;
+    background:var(--gold);color:var(--verde-fundo);border-radius:4px;padding:10px 14px;
+    align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 8px 24px -12px #000}
+  .bulk-bar.show{display:flex}
+  .bulk-bar span{font-weight:700;font-size:14px}
+  .oc.st-cancelada{border-left-color:#8a8a8a;opacity:.5}
+  .oc.st-cancelada .modelo{text-decoration:line-through}
+  /* MODAL */
+  .modal-wrap{position:fixed;inset:0;background:rgba(18,24,8,.75);z-index:300;display:none;
+    align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto}
+  .modal-wrap.show{display:flex}
+  .modal-card{background:var(--verde);border:1px solid var(--linha);border-radius:6px;padding:24px;
+    max-width:540px;width:100%;box-shadow:0 30px 70px -30px #000;animation:fade .25s ease}
+  .modal-card h2{font-family:'Playfair Display',serif;color:var(--gold-claro);font-size:20px;margin-bottom:2px}
+  /* CARD DE FÁBRICA (pontualidade) */
+  .fab-card{background:var(--verde);border:1px solid var(--linha);border-radius:4px;padding:16px 18px}
+  .fab-card h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--creme);margin-bottom:10px}
+  .fc-row{display:flex;justify-content:space-between;font-size:13px;color:var(--creme-suave);padding:4px 0}
+  .fc-row b{color:var(--gold-claro);font-family:'DM Mono'}
+  .bar{height:8px;background:var(--verde-esc);border-radius:5px;overflow:hidden;margin:8px 0;border:1px solid var(--linha)}
+  .bar-fill{height:100%;background:var(--gold);border-radius:5px}
+
+  /* BANNER */
+  .banner{background:var(--ambar-bg);border:1px solid var(--ambar);color:#f3d8a8;
+    padding:11px 16px;border-radius:4px;font-size:13px;margin-top:14px;display:none}
+  .banner.show{display:block}
+  .banner code{font-family:'DM Mono';background:rgba(0,0,0,.25);padding:1px 6px;border-radius:3px}
+
+  /* TOAST */
+  /* LOGIN */
+  #login{position:fixed;inset:0;background:var(--verde-fundo);z-index:200;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    background-image:radial-gradient(circle at 30% 18%, rgba(201,169,80,.13), transparent 52%)}
+  .login-card{background:var(--verde);border:1px solid var(--linha);border-radius:6px;
+    padding:36px 30px;max-width:360px;width:100%;text-align:center;
+    box-shadow:0 30px 70px -34px #000}
+  .login-card .lion{font-size:24px;letter-spacing:.4em;color:var(--gold)}
+  .login-card h1{font-family:'Playfair Display',serif;font-size:23px;color:var(--creme);margin-top:8px;line-height:1.1}
+  .login-card .sub{font-family:'DM Mono';font-size:10px;letter-spacing:.35em;text-transform:uppercase;
+    color:var(--gold-claro);margin:6px 0 20px}
+  .login-card label{text-align:left;margin-top:12px}
+  .login-card .btn{width:100%;margin-top:22px}
+  .lg-err{color:#f0a193;font-size:13px;margin-top:12px;min-height:16px}
+  .topbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;
+    font-size:12px;color:var(--creme-suave);margin-bottom:8px}
+  #who{font-family:'DM Mono';letter-spacing:.05em;color:var(--gold-claro)}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--gold);color:var(--verde-fundo);font-weight:600;padding:12px 22px;
+    border-radius:3px;opacity:0;pointer-events:none;transition:.3s;z-index:99;font-size:14px}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .footnote{text-align:center;font-size:11px;color:var(--creme-suave);opacity:.5;
+    margin-top:30px;letter-spacing:.1em;font-family:'DM Mono'}
+/* ===== Etiqueta de encomenda (colar no sapato) ===== */
+.etq-print{display:none}
+.etq{width:80mm;min-height:60mm;box-sizing:border-box;padding:5mm 5.5mm;background:#fff;color:#1d2b14;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
+.etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3mm}
+.etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:13pt;color:#3a4720;line-height:1}
+.etq-selo{font-weight:700;font-size:7pt;letter-spacing:2px;border:1.2px solid #3a4720;color:#3a4720;border-radius:3px;padding:2px 6px;white-space:nowrap}
+.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:16pt;line-height:1.05;color:#16240e;word-break:break-word}
+.etq-contato{font-family:'DM Mono',monospace;font-size:10pt;margin-top:1mm;color:#3a4720}
+.etq-linha{height:1px;background:#c9a950;margin:3mm 0}
+.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.9mm 0;border-bottom:1px dotted #d9d9d9}
+.etq-row:last-child{border-bottom:none}
+.etq-row .k{color:#888;text-transform:uppercase;letter-spacing:.5px;font-size:7.5pt;align-self:center;white-space:nowrap}
+.etq-row .v{font-weight:600;text-align:right;color:#16240e;font-size:10pt}
+@media print{
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  body>*{display:none!important}
+  body.printing-etq #etq-print{display:flex!important;align-items:flex-start;justify-content:center}
+  @page{size:80mm 60mm;margin:0}
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <div class="lion">&#9876;</div>
+    <h1>Central de Encomendas</h1>
+    <div class="sub">Loretto Scarpa</div>
+    <label>Usuário</label>
+    <input id="lg-user" autocomplete="username" placeholder="usuário">
+    <label>Senha</label>
+    <input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••">
+    <button class="btn" onclick="login()">Entrar</button>
+    <div id="lg-err" class="lg-err"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+
+  <header>
+    <div class="topbar"><span id="who"></span><button class="icon-btn" onclick="logout()">Sair</button></div>
+    <div class="brand">
+      <div class="lion">&#9876;</div>
+      <h1>Central de Encomendas</h1>
+      <div class="sub">Loretto Scarpa</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-view="nova">Nova Encomenda</button>
+      <button class="tab tab-gestor" data-view="gestor">Painel do Gestor</button>
+      <button class="tab tab-gestor" data-view="fabricas">Fábricas</button>
+      <button class="tab" data-view="andamento">Em andamento</button>
+      <button class="tab" data-view="recebidas">Recebidas</button>
+      <button class="tab" data-view="finalizadas">Finalizadas</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner">
+    Rodando em <b>modo demonstração</b> (os dados não são salvos ao recarregar).
+    Para salvar de verdade, cole sua configuração do Firebase no início do código, no objeto <code>FIREBASE_CONFIG</code>.
+  </div>
+
+  <!-- ============ NOVA ENCOMENDA ============ -->
+  <section id="view-nova" class="view active">
+    <div class="panel">
+      <h2>Registrar encomenda</h2>
+      <p class="hint">Preencha os dados do modelo encomendado. A fábrica é definida depois pelo gestor. O prazo começa a contar a partir de agora.</p>
+
+      <div class="grid">
+        <div class="photo-zone" id="photoZone">
+          <div id="photoPreview"><span>&#128247;&nbsp; Foto do modelo</span></div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+            <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoCam').click()">📷 Câmera</button>
+            <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoFile').click()">🖼 Anexar</button>
+          </div>
+          <input type="file" id="fotoCam" accept="image/*" capture="environment" style="display:none">
+          <input type="file" id="fotoFile" accept="image/*" style="display:none">
+        </div>
+
+        <div>
+          <label>Modelo do sapato</label>
+          <input id="f-modelo" placeholder="Ex.: Oxford Wholecut Café">
+        </div>
+        <div class="full">
+          <label>Numeração</label>
+          <input id="f-num" placeholder="Toque nos tamanhos ou digite">
+          <div class="num-btns" id="numBtns"></div>
+        </div>
+        <div>
+          <label>Vendedora</label>
+          <select id="f-vend"></select>
+        </div>
+        <div>
+          <label>Quantidade de pares</label>
+          <input id="f-qtd" type="number" min="1" value="1">
+        </div>
+        <div>
+          <label>Cliente <span style="opacity:.5;text-transform:none">(opcional)</span></label>
+          <input id="f-cliente" placeholder="Nome do cliente">
+        </div>
+        <div>
+          <label>Contato do cliente <span style="opacity:.5;text-transform:none">(WhatsApp)</span></label>
+          <input id="f-contato" placeholder="Ex.: 62 9 9999-9999">
+        </div>
+        <div>
+          <label>Pagamento</label>
+          <select id="f-pag">
+            <option value="pendente">Pendente</option>
+            <option value="parcial">Pagamento parcial</option>
+            <option value="pago">Pago integral</option>
+          </select>
+        </div>
+        <div>
+          <label>Valor total <span style="opacity:.5;text-transform:none">(R$ — opcional)</span></label>
+          <input id="f-vtotal" type="number" min="0" step="0.01" placeholder="0,00">
+        </div>
+        <div>
+          <label>Valor pago <span style="opacity:.5;text-transform:none">(R$ — opcional)</span></label>
+          <input id="f-vpago" type="number" min="0" step="0.01" placeholder="0,00">
+        </div>
+        <div class="full">
+          <label>Observações</label>
+          <textarea id="f-obs" placeholder="Cor, ajustes, detalhes de acabamento, solado, etc."></textarea>
+        </div>
+        <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn ghost" onclick="limparForm()">Limpar</button>
+          <button class="btn" onclick="salvarEncomenda()">Registrar encomenda</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EM ANDAMENTO ============ -->
+  <section id="view-andamento" class="view">
+    <div class="panel">
+      <h2>Encomendas em andamento</h2>
+      <p class="hint">Encomendas que ainda não chegaram da fábrica, com o estágio de cada uma e a contagem de dias.</p>
+    </div>
+    <div id="andamento-list"></div>
+  </section>
+
+  <!-- ============ PAINEL DO GESTOR ============ -->
+  <section id="view-gestor" class="view">
+    <div class="stats" id="stats"></div>
+
+    <div class="filters panel" style="margin-top:14px">
+      <div class="f">
+        <label>Filtrar por fábrica</label>
+        <select id="flt-fab"><option value="">Todas as fábricas</option></select>
+      </div>
+      <div class="f">
+        <label>Filtrar por vendedora</label>
+        <select id="flt-vend"><option value="">Todas as vendedoras</option></select>
+      </div>
+      <div class="f">
+        <label>Situação</label>
+        <select id="flt-st">
+          <option value="abertas">Em aberto (padrão)</option>
+          <option value="atraso">Somente atrasadas</option>
+          <option value="todas">Todas (inclui recebidas)</option>
+          <option value="canceladas">Somente canceladas</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="bulk-bar" class="bulk-bar"></div>
+    <div id="gestor-list"></div>
+  </section>
+
+  <!-- ============ RECEBIDAS ============ -->
+  <section id="view-recebidas" class="view">
+    <div class="panel">
+      <h2>Encomendas recebidas</h2>
+      <p class="hint">Modelos que já chegaram da fábrica. O <b>gestor</b> avisa a vendedora pelo botão “Avisar vendedora”. A <b>vendedora</b> vê os próprios modelos e aciona o cliente em “Avisar cliente” — a mensagem muda conforme o pagamento. Ao concluir, a vendedora clica em “Finalizar”.</p>
+    </div>
+    <div id="recebidas-list"></div>
+  </section>
+
+  <!-- ============ FINALIZADAS ============ -->
+  <section id="view-finalizadas" class="view">
+    <div class="panel">
+      <h2>Encomendas finalizadas</h2>
+      <p class="hint">Encomendas concluídas — cliente avisado, pago e retirado. Ficam arquivadas aqui.</p>
+    </div>
+    <div id="finalizadas-list"></div>
+  </section>
+
+  <!-- ============ FÁBRICAS (PONTUALIDADE) ============ -->
+  <section id="view-fabricas" class="view">
+    <div class="panel">
+      <h2>Pontualidade das fábricas</h2>
+      <p class="hint">Tempo médio real de entrega e índice de atraso por fornecedor, calculados a partir das encomendas já recebidas. Use para cobrar e negociar prazos.</p>
+    </div>
+    <div id="fabricas-list"></div>
+  </section>
+
+  <div class="footnote">LORETTO SCARPA &nbsp;&middot;&nbsp; Prazo padrão de fábrica: 15 dias</div>
+</div>
+
+<div id="modal" class="modal-wrap" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card" id="modal-card"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ====================================================================
+   CONFIGURAÇÃO — cole aqui os dados do seu projeto Firebase.
+   Pode reaproveitar um projeto existente (ex.: loretto-scarpa-l-icr)
+   e usar uma coleção nova chamada "encomendas".
+   Enquanto os campos estiverem com "COLE_AQUI", roda em modo demo.
+==================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "COLE_AQUI",
+  authDomain: "COLE_AQUI.firebaseapp.com",
+  projectId: "COLE_AQUI",
+  storageBucket: "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId: "COLE_AQUI"
+};
+
+const PRAZO_DIAS = 15;          // prazo limite da fábrica
+const ATENCAO_DIAS = 12;        // a partir daqui fica em amarelo
+const CRONOMETRO = "envio";     // base do contador de 15 dias: "registro" (data do pedido) ou "envio" (envio à fábrica)
+
+/* Equipe e fábricas — edite à vontade.
+   No telefone das fábricas, use o formato 55 + DDD + número (só dígitos)
+   para o botão de WhatsApp já abrir no contato certo. Deixe "" se não tiver. */
+const VENDEDORAS = ["Jhennifer","Ialey","Michelly","Natália"];
+const FABRICAS = [
+  { nome:"Manutt (Rafael)",          tel:"" },
+  { nome:"Tchwm Shoes (Diego)",      tel:"" },
+  { nome:"Urbana Man (Marcos)",      tel:"" },
+  { nome:"Tarragona (Paulo Peixinho)", tel:"" },
+  { nome:"Murilo Mendes",            tel:"" }
+];
+
+/* Usuários do sistema (login). As senhas ficam visíveis no código — uso interno.
+   Papel "gestor"   = acesso total (painel, fábricas, marca chegada, avisa vendedora).
+   Papel "operacao" = mesmo acesso de gestão (Edson, Yuri).
+   Papel "vendedora"= registra encomendas, vê/aciona SÓ os modelos dela e avisa o cliente.
+   "nome" da vendedora precisa ser idêntico ao nome usado nas encomendas.
+   "tel" = WhatsApp da pessoa (55 + DDD + número, só dígitos) — usado para avisos. */
+const USUARIOS = [
+  { usuario:"gregory",   senha:"greg2026", papel:"gestor",    nome:"Gregory",   tel:"" },
+  { usuario:"edson",     senha:"eds2026",  papel:"operacao",  nome:"Edson",     tel:"" },
+  { usuario:"yuri",      senha:"yur2026",  papel:"operacao",  nome:"Yuri",      tel:"" },
+  { usuario:"jhennifer", senha:"jhe2026",  papel:"vendedora", nome:"Jhennifer", tel:"" },
+  { usuario:"ialey",     senha:"ial2026",  papel:"vendedora", nome:"Ialey",     tel:"" },
+  { usuario:"michelly",  senha:"mic2026",  papel:"vendedora", nome:"Michelly",  tel:"" },
+  { usuario:"natalia",   senha:"nat2026",  papel:"vendedora", nome:"Natália",   tel:"" }
+];
+function ehGestor(u){ u=u||currentUser; return !!u && (u.papel==="gestor" || u.papel==="operacao"); }
+
+/* ==================== ESTADO / FIREBASE ==================== */
+let usaFirebase = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes("COLE_AQUI");
+let db = null;
+let encomendas = [];
+let fotoAtual = null; // base64 da foto em edição
+let currentUser = null;
+let selecionados = new Set();
+const LEMBRETE_DIAS = 3;   // dias após chegada para sugerir lembrete de retirada
+
+const _mem={};
+const store={
+  get(k){try{return sessionStorage.getItem(k);}catch(e){return _mem[k]||null;}},
+  set(k,v){try{sessionStorage.setItem(k,v);}catch(e){_mem[k]=v;}},
+  del(k){try{sessionStorage.removeItem(k);}catch(e){delete _mem[k];}}
+};
+
+/* ícone do WhatsApp (usa a cor do texto do botão) */
+const WA_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" style="vertical-align:-3px;margin-right:6px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
+function telDaFabrica(nome){ const f = FABRICAS.find(x=>x.nome===nome); return f ? f.tel : ""; }
+
+if (usaFirebase){
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+    db.collection("encomendas").orderBy("dataCriacao","asc")
+      .onSnapshot(snap=>{
+        encomendas = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        renderTudo();
+      }, err=>{ console.error(err); toast("Erro de conexão com o Firebase"); });
+  }catch(e){ console.error(e); usaFirebase=false; }
+}
+
+if (!usaFirebase){
+  document.getElementById("banner").classList.add("show");
+  // dados de exemplo para visualizar o layout
+  const hoje = Date.now(), d = 86400000;
+  encomendas = [
+    {id:"d1", modelo:"Oxford Wholecut Café", numeracao:"42", qtd:1, vendedora:"Jhennifer",
+     fabrica:"Manutt (Rafael)", cliente:"Carlos Eduardo", contato:"62 99888-1122",
+     pagamento:"pago", valorTotal:890, valorPago:890, pagamentos:[{data:hoje-3*d,valor:890}], obs:"Solado de couro, cadarço fino",
+     status:"enviada", dataCriacao:hoje-3*d, dataEnvio:hoje-2*d, foto:null},
+    {id:"d2", modelo:"Mocassim Drive Marinho", numeracao:"40, 41", qtd:2, vendedora:"Ialey",
+     fabrica:"", cliente:"João Vitor", contato:"62 99777-3344",
+     pagamento:"parcial", valorTotal:1200, valorPago:600, pagamentos:[{data:hoje-1*d,valor:600}], obs:"Forro em camurça",
+     status:"aberta", dataCriacao:hoje-1*d, foto:null},
+    {id:"d3", modelo:"Bota Chelsea Whisky", numeracao:"43", qtd:1, vendedora:"Michelly",
+     fabrica:"Manutt (Rafael)", cliente:"Dr. Henrique", contato:"",
+     pagamento:"pendente", valorTotal:1100, valorPago:0, pagamentos:[], obs:"Elástico reforçado",
+     status:"enviada", dataCriacao:hoje-19*d, dataEnvio:hoje-17*d, foto:null},
+    {id:"d4", modelo:"Sapato Social Bico Fino", numeracao:"41", qtd:1, vendedora:"Jhennifer",
+     fabrica:"Urbana Man (Marcos)", cliente:"Marcelo Antunes", contato:"62 99555-7788",
+     pagamento:"pago", valorTotal:790, valorPago:790, pagamentos:[{data:hoje-10*d,valor:790}], obs:"",
+     status:"recebida", dataCriacao:hoje-10*d, dataEnvio:hoje-8*d, dataRecebida:hoje-2*d, foto:null},
+    {id:"d5", modelo:"Mocassim Tassel Preto", numeracao:"42", qtd:1, vendedora:"Ialey",
+     fabrica:"Tchwm Shoes (Diego)", cliente:"Paulo Sérgio", contato:"62 99444-1212",
+     pagamento:"pago", valorTotal:850, valorPago:850, pagamentos:[{data:hoje-20*d,valor:850}], obs:"",
+     status:"finalizada", dataCriacao:hoje-20*d, dataEnvio:hoje-19*d, dataRecebida:hoje-3*d,
+     dataFinalizada:hoje-2*d, dataRetirada:hoje-2*d, formaEntrega:"retirada", foto:null}
+  ];
+}
+
+/* ==================== INICIALIZAÇÃO UI ==================== */
+function preencherSelects(){
+  const vendOpts = VENDEDORAS.map(v=>`<option>${v}</option>`).join("");
+  const fabOpts  = FABRICAS.map(f=>`<option>${f.nome}</option>`).join("");
+  document.getElementById("f-vend").innerHTML = `<option value="" disabled selected>Selecione…</option>`+vendOpts;
+  document.getElementById("flt-vend").innerHTML = `<option value="">Todas as vendedoras</option>`+vendOpts;
+  document.getElementById("flt-fab").innerHTML  = `<option value="">Todas as fábricas</option><option value="__none__">⚠ A alocar (sem fábrica)</option>`+fabOpts;
+}
+preencherSelects();
+
+// tabs
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("view-"+t.dataset.view).classList.add("active");
+  };
+});
+["flt-fab","flt-vend","flt-st"].forEach(id=>document.getElementById(id).addEventListener("change",renderGestor));
+
+/* ==================== LOGIN ==================== */
+function login(){
+  const u=document.getElementById("lg-user").value.trim();
+  const p=document.getElementById("lg-pass").value;
+  const achou=USUARIOS.find(x=>x.usuario.toLowerCase()===u.toLowerCase() && x.senha===p);
+  if(!achou){ document.getElementById("lg-err").textContent="Usuário ou senha inválidos."; return; }
+  currentUser={usuario:achou.usuario, papel:achou.papel, nome:achou.nome};
+  store.set("ls_user", JSON.stringify(currentUser));
+  document.getElementById("lg-err").textContent="";
+  entrarApp();
+}
+function entrarApp(){
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+  const lbl = currentUser.papel==="gestor"?"Gestor":(currentUser.papel==="operacao"?"Operação":"Vendedora");
+  document.getElementById("who").textContent = `${currentUser.nome} · ${lbl}`;
+  aplicarPapel();
+}
+function aplicarPapel(){
+  const eh = ehGestor();
+  document.querySelectorAll(".tab-gestor").forEach(t=>t.style.display = eh?"":"none");
+  const sel=document.getElementById("f-vend");
+  if(!eh){
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    document.querySelector('.tab[data-view="nova"]').classList.add("active");
+    document.getElementById("view-nova").classList.add("active");
+    // vendedora fica travada no próprio nome — não lança para outra
+    if(sel){ if([...sel.options].some(o=>o.value===currentUser.nome)) sel.value=currentUser.nome; sel.disabled=true; }
+  } else {
+    if(sel) sel.disabled=false;
+  }
+  renderRecebidas();
+}
+function logout(){
+  currentUser=null; store.del("ls_user");
+  document.getElementById("login").style.display="flex";
+  document.getElementById("app").style.display="none";
+  document.getElementById("lg-pass").value="";
+}
+["lg-user","lg-pass"].forEach(id=>document.getElementById(id)
+  .addEventListener("keydown",e=>{ if(e.key==="Enter") login(); }));
+
+/* ==================== SALVAR ==================== */
+async function salvarEncomenda(){
+  const modelo = document.getElementById("f-modelo").value.trim();
+  // se quem registra é vendedora, a encomenda sai sempre no nome dela
+  const vend = ehGestor() ? document.getElementById("f-vend").value : currentUser.nome;
+  const num = document.getElementById("f-num").value.trim();
+  if(!modelo){ toast("Informe o modelo do sapato"); return; }
+  if(!vend){ toast("Selecione a vendedora"); return; }
+
+  const reg = {
+    modelo,
+    numeracao: num,
+    qtd: parseInt(document.getElementById("f-qtd").value)||1,
+    vendedora: vend,
+    fabrica: "",
+    cliente: document.getElementById("f-cliente").value.trim(),
+    contato: document.getElementById("f-contato").value.trim(),
+    pagamento: document.getElementById("f-pag").value,
+    valorTotal: parseFloat(document.getElementById("f-vtotal").value)||0,
+    valorPago: parseFloat(document.getElementById("f-vpago").value)||0,
+    obs: document.getElementById("f-obs").value.trim(),
+    foto: fotoAtual,
+    status: "aberta",
+    dataCriacao: Date.now()
+  };
+
+  try{
+    if(usaFirebase){ await db.collection("encomendas").add(reg); }
+    else { reg.id="loc"+Date.now(); encomendas.push(reg); renderTudo(); }
+    toast("Encomenda registrada ✔ aguardando alocação de fábrica");
+    limparForm();
+  }catch(e){ console.error(e); toast("Erro ao salvar"); }
+}
+
+function limparForm(){
+  ["f-modelo","f-num","f-cliente","f-contato","f-vtotal","f-vpago","f-obs"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f-qtd").value=1;
+  document.getElementById("f-vend").selectedIndex=0;
+  document.getElementById("f-pag").selectedIndex=0;
+  fotoAtual=null;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo</span>`;
+  document.getElementById("fotoCam").value=""; document.getElementById("fotoFile").value="";
+  syncNumBtns();
+}
+
+/* foto: câmera ou anexar */
+function processarFoto(file){
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=700; let w=img.width,h=img.height;
+      if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      fotoAtual=c.toDataURL("image/jpeg",0.7);
+      document.getElementById("photoPreview").innerHTML=`<img src="${fotoAtual}" style="max-height:170px;border-radius:3px">`;
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+document.getElementById("fotoCam").onchange = e=>processarFoto(e.target.files[0]);
+document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0]);
+
+/* numeração em botões */
+const TAMANHOS=[37,38,39,40,41,42,43,44,45,46];
+function montarNumBtns(){
+  const box=document.getElementById("numBtns"); if(!box) return;
+  box.innerHTML=TAMANHOS.map(t=>`<button type="button" class="num-btn" data-n="${t}" onclick="toggleNum(${t})">${t}</button>`).join("");
+  syncNumBtns();
+}
+function getNums(){ return document.getElementById("f-num").value.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean); }
+function toggleNum(t){
+  const arr=getNums(), s=String(t), i=arr.indexOf(s);
+  if(i>=0) arr.splice(i,1); else arr.push(s);
+  arr.sort((a,b)=>parseFloat(a)-parseFloat(b));
+  document.getElementById("f-num").value=arr.join(", ");
+  syncNumBtns();
+}
+function syncNumBtns(){
+  const arr=getNums();
+  document.querySelectorAll("#numBtns .num-btn").forEach(b=>b.classList.toggle("on", arr.includes(b.dataset.n)));
+}
+montarNumBtns();
+document.getElementById("f-num").addEventListener("input", syncNumBtns);
+
+/* ==================== STATUS / DIAS ==================== */
+function diasDecorridos(ts){ return Math.floor((Date.now()-ts)/86400000); }
+function baseClock(e){ return (CRONOMETRO==="envio" && e.dataEnvio) ? e.dataEnvio : e.dataCriacao; }
+function diasDe(e){ return Math.floor((Date.now()-baseClock(e))/86400000); }
+function statusVisual(enc){
+  if(enc.status==="cancelada") return {cls:"st-cancelada", badge:"", txt:"Cancelada"};
+  if(enc.status==="finalizada") return {cls:"st-recebida", badge:"", txt:"Finalizada"};
+  if(enc.status==="recebida") return {cls:"st-recebida", badge:"", txt:"Recebida"};
+  const d = diasDe(enc);
+  if(d>PRAZO_DIAS) return {cls:"st-atraso", badge:"atraso", dias:d};
+  if(d>=ATENCAO_DIAS) return {cls:"st-atencao", badge:"atencao", dias:d};
+  return {cls:"", badge:"", dias:d};
+}
+
+/* ==================== RENDER ==================== */
+function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+
+function renderStats(){
+  const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
+  const atrasadas = abertas.filter(e=>diasDe(e)>PRAZO_DIAS);
+  const atencao = abertas.filter(e=>{const d=diasDe(e);return d>=ATENCAO_DIAS&&d<=PRAZO_DIAS;});
+  const aReceber = encomendas.filter(e=>e.status!=="cancelada").reduce((s,e)=>s+saldoDe(e),0);
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="n">${abertas.length}</div><div class="l">Em aberto</div></div>
+    <div class="stat"><div class="n">${atencao.length}</div><div class="l">Próx. do prazo</div></div>
+    <div class="stat alert"><div class="n">${atrasadas.length}</div><div class="l">Atrasadas (+${PRAZO_DIAS}d)</div></div>
+    <div class="stat"><div class="n" style="font-size:19px">${fmtMoeda(aReceber)}</div><div class="l">Saldo a receber</div></div>
+    <div class="stat"><div class="n">${encomendas.length}</div><div class="l">Total registrado</div></div>`;
+}
+
+function renderGestor(){
+  atualizarBarra();
+  const fFab = document.getElementById("flt-fab").value;
+  const fVend = document.getElementById("flt-vend").value;
+  const fSt = document.getElementById("flt-st").value;
+
+  let lista = encomendas.slice();
+  if(fFab==="__none__") lista = lista.filter(e=>!e.fabrica);
+  else if(fFab) lista = lista.filter(e=>e.fabrica===fFab);
+  if(fVend) lista = lista.filter(e=>e.vendedora===fVend);
+  if(fSt==="abertas") lista = lista.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
+  else if(fSt==="atraso") lista = lista.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada" && diasDe(e)>PRAZO_DIAS);
+  else if(fSt==="canceladas") lista = lista.filter(e=>e.status==="cancelada");
+
+  const cont = document.getElementById("gestor-list");
+  if(lista.length===0){
+    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+      Nenhuma encomenda nesse filtro.</div>`;
+    return;
+  }
+
+  // agrupar por fábrica ("" = ainda não alocada)
+  const grupos = {};
+  lista.forEach(e=>{ const k=e.fabrica||""; (grupos[k]=grupos[k]||[]).push(e); });
+
+  const chaves = Object.keys(grupos).sort((a,b)=>{
+    if(a==="") return -1; if(b==="") return 1; return a.localeCompare(b);
+  });
+
+  let html="";
+  chaves.forEach(fab=>{
+    const itens = grupos[fab].sort((a,b)=>a.dataCriacao-b.dataCriacao);
+    const naoAlocada = fab==="";
+    const atr = itens.filter(e=>e.status!=="recebida"&&diasDe(e)>PRAZO_DIAS).length;
+    const titulo = naoAlocada ? "⚠ A alocar fábrica" : fab;
+    const cobrar = (!naoAlocada && atr>0) ? `<button class="btn sm" style="background:var(--vermelho);border-color:var(--vermelho);color:#fff" onclick="cobrarFabrica('${esc(fab)}')">⏰ Cobrar atrasados</button>` : "";
+    const acts = naoAlocada ? `<span style="font-size:12px;color:var(--creme-suave);opacity:.8">Defina a fábrica em cada card abaixo</span>` : `
+          ${cobrar}
+          <button class="btn ghost sm" onclick="copiarWhats('${esc(fab)}')">📋 Copiar p/ WhatsApp</button>
+          <button class="btn ghost sm" onclick="abrirWhats('${esc(fab)}')">${WA_ICON}Abrir WhatsApp</button>
+          <button class="btn sm" onclick="gerarPDF('${esc(fab)}')">📄 Gerar PDF</button>`;
+    html += `<div class="fab-group${naoAlocada?' nao-alocada':''}">
+      <div class="fab-head">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h3>${titulo}</h3>
+          <span class="count">${itens.length} ${itens.length===1?'item':'itens'}</span>
+          ${atr?`<span class="count" style="border-color:var(--vermelho);color:#f0a193">${atr} atrasada(s)</span>`:''}
+        </div>
+        <div class="acts">${acts}</div>
+      </div>
+      <div class="fab-body">${itens.map(card).join("")}</div>
+    </div>`;
+  });
+  cont.innerHTML = html;
+}
+
+function card(e){
+  const sv = statusVisual(e);
+  const d = diasDe(e);
+  const badgeDias = e.status==="cancelada" ? `<span class="badge b-pend">✕ Cancelada</span>`
+    : (e.status==="recebida"||e.status==="finalizada") ? `<span class="badge b-dias">✔ ${e.status==='finalizada'?'Finalizada':'Recebida'}</span>`
+    : `<span class="badge b-dias ${sv.badge}">${d}d / ${PRAZO_DIAS}d ${d>PRAZO_DIAS?'⚠':''}</span>`;
+  const fabOpts = FABRICAS.map(f=>`<option ${e.fabrica===f.nome?'selected':''}>${f.nome}</option>`).join("");
+  return `<div class="oc ${sv.cls}">
+    <label class="oc-check"><input type="checkbox" onclick="toggleSel('${e.id}',this.checked)" ${selecionados.has(e.id)?'checked':''}></label>
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
+    <div class="oc-body">
+      <div class="modelo">${e.modelo||'—'}</div>
+      <div class="badges">
+        ${badgeDias}
+        <span class="badge b-vend">${e.vendedora||''}</span>
+        ${pagBadge(e)}
+      </div>
+      <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
+      ${e.contato?`<div class="oc-row"><b>Contato</b><span><a class="wlink" href="https://wa.me/${waNum(e.contato)}" target="_blank">${e.contato}</a></span></div>`:''}
+      <div class="oc-row"><b>Registro</b><span>${fmtData(e.dataCriacao)}${e.dataEnvio?` · envio ${fmtData(e.dataEnvio)}`:''}</span></div>
+      ${e.obs?`<div class="oc-obs">“${e.obs}”</div>`:''}
+    </div>
+    <div class="oc-foot">
+      <select class="sel-fab" onchange="mudarFabrica('${e.id}',this.value)">
+        <option value="" ${!e.fabrica?'selected':''}>— Alocar fábrica —</option>
+        ${fabOpts}
+      </select>
+      <select onchange="mudarStatus('${e.id}',this.value)">
+        <option value="aberta"  ${e.status==='aberta'?'selected':''}>Aguardando envio</option>
+        <option value="enviada" ${e.status==='enviada'?'selected':''}>Enviada à fábrica</option>
+        <option value="recebida"${e.status==='recebida'?'selected':''}>Recebida ✔</option>
+        <option value="finalizada"${e.status==='finalizada'?'selected':''}>Finalizada ✓</option>
+        <option value="cancelada"${e.status==='cancelada'?'selected':''}>Cancelada ✕</option>
+      </select>
+      <button class="icon-btn" title="Editar" onclick="editarEncomenda('${e.id}')">✏️</button>
+      <button class="icon-btn" title="Pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
+      <button class="icon-btn" title="Duplicar" onclick="duplicarEncomenda('${e.id}')">⧉</button>
+      <button class="icon-btn del" title="Excluir" onclick="excluir('${e.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+function pagBadge(e){
+  if(isPago(e)) return `<span class="badge b-pago">Pago ✔</span>`;
+  if(totalPago(e)>0){
+    const txt = e.valorTotal? `Parcial · falta ${fmtMoeda(saldoDe(e))}` : "Parcial";
+    return `<span class="badge b-parcial">${txt}</span>`;
+  }
+  return `<span class="badge b-pend">Pendente</span>`;
+}
+
+/* ==================== RECEBIDAS / AVISO AO CLIENTE ==================== */
+function totalPago(e){ return Array.isArray(e.pagamentos)? e.pagamentos.reduce((s,p)=>s+(p.valor||0),0) : (e.valorPago||0); }
+function saldoDe(e){ return Math.max(0,(e.valorTotal||0)-totalPago(e)); }
+function isPago(e){
+  if(e.pagamento==="pago") return true;
+  if((e.valorTotal||0)>0 && saldoDe(e)<=0) return true;
+  return false;
+}
+
+function renderRecebidas(){
+  let itens = encomendas.filter(e=>e.status==="recebida");
+  const ehVend = currentUser && currentUser.papel==="vendedora";
+  if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
+  itens.sort((a,b)=>b.dataCriacao-a.dataCriacao);
+  const cont = document.getElementById("recebidas-list");
+  if(!cont) return;
+  if(itens.length===0){
+    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+      ${ehVend ? "Nenhum modelo seu recebido ainda." : "Nenhuma encomenda marcada como recebida ainda."}<br>
+      <span style="font-size:13px;opacity:.8">${ehVend ? "Assim que o gestor marcar a chegada, o modelo aparece aqui para você avisar o cliente." : "Marque uma encomenda como “Recebida ✔” no Painel do Gestor."}</span></div>`;
+    return;
+  }
+  cont.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px">
+    ${itens.map(cardRecebida).join("")}</div>`;
+}
+
+function cardRecebida(e){
+  const ehVend = currentUser && currentUser.papel==="vendedora";
+  const selo = isPago(e)
+    ? `<span class="badge b-pago">Quitado — pronto p/ retirada</span>`
+    : `<span class="badge b-pend">Falta ${e.valorTotal>0?fmtMoeda(saldoDe(e)):"pagamento"}</span>`;
+  const diasRet = e.dataRecebida ? diasDecorridos(e.dataRecebida) : 0;
+  const aguardando = diasRet>=LEMBRETE_DIAS;
+  const seloEspera = aguardando ? `<span class="badge b-parcial">Aguardando retirada há ${diasRet}d</span>` : "";
+  return `<div class="oc st-recebida ${aguardando?'st-atencao':''}" style="opacity:1">
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
+    <div class="oc-body">
+      <div class="modelo">${e.modelo||'—'}</div>
+      <div class="badges">${selo}${seloEspera}<span class="badge b-vend">${e.vendedora||''}</span></div>
+      <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
+      ${e.contato?`<div class="oc-row"><b>Contato</b><span>${e.contato}</span></div>`:`<div class="oc-row"><b>Contato</b><span style="opacity:.6">não informado</span></div>`}
+      ${(!ehVend && e.fabrica)?`<div class="oc-row"><b>Fábrica</b><span>${e.fabrica}</span></div>`:''}
+    </div>
+    <div class="oc-foot">
+      <button class="icon-btn" title="Imprimir etiqueta p/ colar no sapato" onclick="etiquetaEncomenda('${e.id}')">&#127991;</button>
+      ${ehVend
+        ? `<button class="btn sm" style="flex:1;min-width:130px" onclick="avisarCliente('${e.id}')">${WA_ICON}Avisar cliente</button>
+           ${aguardando?`<button class="btn ghost sm" title="Lembrar cliente" onclick="avisarLembrete('${e.id}')">🔔 Lembrar</button>`:''}
+           <button class="icon-btn" title="Copiar mensagem" onclick="copiarMsgCliente('${e.id}')">📋</button>
+           <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
+           <button class="btn ghost sm" onclick="finalizarPedido('${e.id}')">✓ Finalizar</button>`
+        : `<button class="btn sm" style="flex:1;min-width:130px" onclick="avisarVendedora('${e.id}')">${WA_ICON}Avisar vendedora</button>
+           <button class="icon-btn" title="Copiar mensagem p/ vendedora" onclick="copiarMsgVendedora('${e.id}')">📋</button>
+           <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>`}
+    </div>
+  </div>`;
+}
+
+function msgCliente(e){
+  const nome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
+  const ola = nome ? `Olá, ${nome}!` : "Olá!";
+  const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
+  if(isPago(e)){
+    return `${ola} Aqui é da *Loretto Scarpa*. 👞✨\n\nO seu sapato da encomenda *${modelo}* chegou aqui na loja! Você consegue retirar aqui comigo ou prefere que eu entregue pra você?`;
+  }
+  const saldo = saldoDe(e);
+  const valor = (e.valorTotal>0 && saldo>0) ? ` no valor de *${fmtMoeda(saldo)}*` : "";
+  return `${ola} Aqui é da *Loretto Scarpa*. 👞✨\n\nO seu sapato da encomenda *${modelo}* chegou aqui na loja! Falta apenas o pagamento do saldo${valor} da sua encomenda — assim que confirmado, você consegue retirar aqui comigo ou, se preferir, eu entrego pra você.`;
+}
+
+/* mensagem e aviso do gestor para a vendedora */
+function telVendedora(nome){ const u=USUARIOS.find(x=>x.papel==="vendedora"&&x.nome===nome); return u?u.tel:""; }
+function msgVendedora(e){
+  const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
+  const cli = e.cliente ? ` do cliente ${e.cliente}` : "";
+  return `Olá, ${e.vendedora}! 👞\n\nO seu sapato da encomenda *${modelo}*${cli} acabou de chegar na loja. Já pode avisar o cliente para a retirada. ✨`;
+}
+function avisarVendedora(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const msg = msgVendedora(e);
+  const tel = telVendedora(e.vendedora);
+  if(tel){ window.open(`https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg)}`,"_blank"); }
+  else { navigator.clipboard.writeText(msg).then(()=>toast("Vendedora sem número cadastrado — mensagem copiada"))
+    .catch(()=>prompt("Copie a mensagem:", msg)); }
+}
+function copiarMsgVendedora(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  navigator.clipboard.writeText(msgVendedora(e)).then(()=>toast("Mensagem copiada ✔"))
+    .catch(()=>prompt("Copie a mensagem:", msgVendedora(e)));
+}
+
+function avisarCliente(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const msg = msgCliente(e);
+  if(e.contato){
+    window.open(`https://wa.me/${waNum(e.contato)}?text=${encodeURIComponent(msg)}`,"_blank");
+  } else {
+    navigator.clipboard.writeText(msg).then(()=>toast("Cliente sem contato — mensagem copiada"))
+      .catch(()=>prompt("Copie a mensagem:", msg));
+  }
+}
+function copiarMsgCliente(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  navigator.clipboard.writeText(msgCliente(e)).then(()=>toast("Mensagem copiada ✔"))
+    .catch(()=>prompt("Copie a mensagem:", msgCliente(e)));
+}
+function finalizarPedido(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const saldo = saldoDe(e);
+  openModal(`
+    <h2>Concluir encomenda</h2>
+    <p class="hint">${e.modelo||''} — ${e.cliente||'cliente'}</p>
+    ${saldo>0?`<div class="banner show" style="margin:12px 0">Atenção: ainda há saldo de <b>${fmtMoeda(saldo)}</b> a receber deste cliente.</div>`:''}
+    <label>Como o cliente recebeu?</label>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn" onclick="concluir('${e.id}','retirada')">Retirada na loja</button>
+      <button class="btn ghost" onclick="concluir('${e.id}','entrega')">Entrega ao cliente</button>
+    </div>
+    <div style="text-align:right;margin-top:16px"><button class="btn ghost sm" onclick="closeModal()">Cancelar</button></div>
+  `);
+}
+async function concluir(id, forma){
+  await atualizar(id, {status:"finalizada", dataFinalizada:Date.now(), dataRetirada:Date.now(), formaEntrega:forma});
+  closeModal();
+  toast(forma==="entrega"?"Finalizada — entrega registrada ✔":"Finalizada — retirada registrada ✔");
+}
+
+/* ==================== EM ANDAMENTO ==================== */
+function renderAndamento(){
+  let itens = encomendas.filter(e=>e.status==="aberta" || e.status==="enviada");
+  const ehVend = currentUser && currentUser.papel==="vendedora";
+  if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
+  itens.sort((a,b)=>a.dataCriacao-b.dataCriacao);
+  const cont = document.getElementById("andamento-list"); if(!cont) return;
+
+  const nAg = itens.filter(e=>e.status==="aberta").length;
+  const nEnv = itens.filter(e=>e.status==="enviada").length;
+  const nAtr = itens.filter(e=>diasDe(e)>PRAZO_DIAS).length;
+  const resumo = `<div class="stats">
+    <div class="stat"><div class="n">${itens.length}</div><div class="l">Em andamento</div></div>
+    <div class="stat"><div class="n">${nAg}</div><div class="l">Aguardando envio</div></div>
+    <div class="stat"><div class="n">${nEnv}</div><div class="l">Na fábrica</div></div>
+    <div class="stat alert"><div class="n">${nAtr}</div><div class="l">Atrasadas (+${PRAZO_DIAS}d)</div></div>
+  </div>`;
+
+  if(itens.length===0){
+    cont.innerHTML = resumo + `<div class="panel empty"><div class="lion">&#9876;</div>
+      ${ehVend?"Você não tem encomendas em andamento.":"Nenhuma encomenda em andamento."}</div>`;
+    return;
+  }
+  cont.innerHTML = resumo + `<div class="grid-cards">${itens.map(cardAndamento).join("")}</div>`;
+}
+function cardAndamento(e){
+  const sv = statusVisual(e);
+  const d = diasDe(e);
+  const ehVend = currentUser && currentUser.papel==="vendedora";
+  const estagio = e.status==="aberta" ? "Aguardando envio" : "Enviada à fábrica";
+  return `<div class="oc ${sv.cls}">
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
+    <div class="oc-body">
+      <div class="modelo">${e.modelo||'—'}</div>
+      <div class="badges">
+        <span class="badge b-dias ${sv.badge}">${d}d / ${PRAZO_DIAS}d ${d>PRAZO_DIAS?'⚠':''}</span>
+        <span class="badge b-vend">${estagio}</span>
+      </div>
+      <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
+      ${(!ehVend && e.fabrica)?`<div class="oc-row"><b>Fábrica</b><span>${e.fabrica}</span></div>`:''}
+      <div class="oc-row"><b>Registro</b><span>${fmtData(e.dataCriacao)}${e.dataEnvio?` · envio ${fmtData(e.dataEnvio)}`:''}</span></div>
+      ${e.obs?`<div class="oc-obs">“${e.obs}”</div>`:''}
+    </div>
+    <div class="oc-foot">
+      <button class="icon-btn" title="Editar" onclick="editarEncomenda('${e.id}')">✏️ Editar</button>
+      <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰 Pagamento</button>
+      <button class="icon-btn" title="Duplicar" onclick="duplicarEncomenda('${e.id}')">⧉ Duplicar</button>
+    </div>
+  </div>`;
+}
+
+/* ==================== FINALIZADAS ==================== */
+function renderFinalizadas(){
+  let itens = encomendas.filter(e=>e.status==="finalizada");
+  const ehVend = currentUser && currentUser.papel==="vendedora";
+  if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
+  itens.sort((a,b)=>(b.dataFinalizada||b.dataCriacao)-(a.dataFinalizada||a.dataCriacao));
+  const cont = document.getElementById("finalizadas-list"); if(!cont) return;
+  if(itens.length===0){
+    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+      ${ehVend?"Você ainda não tem encomendas finalizadas.":"Nenhuma encomenda finalizada ainda."}</div>`;
+    return;
+  }
+  cont.innerHTML = `<div class="stats"><div class="stat"><div class="n">${itens.length}</div><div class="l">Finalizadas</div></div></div>
+    <div class="grid-cards">${itens.map(cardFinalizada).join("")}</div>`;
+}
+function cardFinalizada(e){
+  return `<div class="oc st-recebida" style="opacity:.85">
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
+    <div class="oc-body">
+      <div class="modelo">${e.modelo||'—'}</div>
+      <div class="badges"><span class="badge b-pago">✓ Finalizada</span><span class="badge b-vend">${e.vendedora||''}</span></div>
+      <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
+      ${e.formaEntrega?`<div class="oc-row"><b>${e.formaEntrega==='entrega'?'Entregue':'Retirada'}</b><span>${fmtData(e.dataRetirada||e.dataFinalizada)}</span></div>`:`<div class="oc-row"><b>Concluída</b><span>${fmtData(e.dataFinalizada||e.dataCriacao)}</span></div>`}
+    </div>
+    <div class="oc-foot">
+      <button class="btn ghost sm" title="Imprimir etiqueta p/ colar no sapato" onclick="etiquetaEncomenda('${e.id}')">&#127991; Etiqueta</button>
+      <button class="icon-btn" title="Reabrir (voltar p/ Recebidas)" onclick="mudarStatus('${e.id}','recebida')">↩ Reabrir</button>
+    </div>
+  </div>`;
+}
+
+/* ==================== ETIQUETA P/ O SAPATO ==================== */
+function etiquetaEncomenda(id){
+  const e = encomendas.find(x=>x.id===id);
+  if(!e){ toast("Encomenda não encontrada"); return; }
+  const eh = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const dataFim = e.dataFinalizada || e.dataRecebida || e.dataCriacao;
+  const dataLabel = e.dataFinalizada ? "Finalizada" : (e.dataRecebida ? "Chegou na loja" : "Registrada");
+  const cont = document.getElementById("etq-print");
+  cont.innerHTML = `
+    <div class="etq">
+      <div class="etq-top">
+        <span class="etq-marca">Loretto Scarpa</span>
+        <span class="etq-selo">ENCOMENDA</span>
+      </div>
+      <div class="etq-cliente">${eh(e.cliente)||"Cliente não informado"}</div>
+      ${e.contato?`<div class="etq-contato">${eh(e.contato)}</div>`:""}
+      <div class="etq-linha"></div>
+      <div class="etq-row"><span class="k">Modelo</span><span class="v">${eh(e.modelo)||"—"}</span></div>
+      <div class="etq-row"><span class="k">Numeração</span><span class="v">${eh(e.numeracao)||"—"}${e.qtd>1?` · ${e.qtd} pares`:""}</span></div>
+      <div class="etq-row"><span class="k">Vendedora</span><span class="v">${eh(e.vendedora)||"—"}</span></div>
+      <div class="etq-row"><span class="k">${dataLabel}</span><span class="v">${fmtData(dataFim)}</span></div>
+    </div>`;
+  document.body.classList.add("printing-etq");
+  window.print();
+  setTimeout(()=>document.body.classList.remove("printing-etq"), 400);
+}
+window.etiquetaEncomenda = etiquetaEncomenda;
+
+/* ==================== AÇÕES ==================== */
+async function atualizar(id, patch){
+  if(usaFirebase){ try{ await db.collection("encomendas").doc(id).update(patch); }catch(e){console.error(e);toast("Erro ao salvar");} }
+  else { const x=encomendas.find(e=>e.id===id); if(x){Object.assign(x,patch); renderTudo();} }
+}
+async function mudarStatus(id, status){
+  const e = encomendas.find(x=>x.id===id);
+  if(status==="cancelada" && !confirm("Marcar esta encomenda como CANCELADA?")){ renderTudo(); return; }
+  const agora = Date.now();
+  const patch = {status};
+  if(status==="enviada"   && e && !e.dataEnvio)    patch.dataEnvio = agora;
+  if(status==="recebida"  && e && !e.dataRecebida) patch.dataRecebida = agora;
+  if(status==="finalizada") patch.dataFinalizada = agora;
+  if(status==="cancelada")  patch.dataCancelada = agora;
+  await atualizar(id, patch);
+  // aviso à vendedora em um toque quando o gestor marca recebida
+  if(status==="recebida" && e && ehGestor()){
+    setTimeout(()=>{ if(confirm(`Sapato recebido! Avisar a vendedora ${e.vendedora} pelo WhatsApp agora?`)) avisarVendedora(id); }, 150);
+  }
+}
+async function mudarFabrica(id, fabrica){
+  await atualizar(id, {fabrica});
+  if(fabrica) toast("Fábrica alocada ✔");
+}
+async function excluir(id){
+  if(!confirm("Excluir esta encomenda?")) return;
+  if(usaFirebase){ try{ await db.collection("encomendas").doc(id).delete(); }catch(e){toast("Erro");} }
+  else { encomendas=encomendas.filter(e=>e.id!==id); renderTudo(); }
+  toast("Encomenda excluída");
+}
+
+/* ==================== EDITAR ENCOMENDA ==================== */
+function editarEncomenda(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  // vendedora só edita as próprias e não pode reatribuir para outra
+  if(!ehGestor() && e.vendedora!==currentUser.nome){ toast("Essa encomenda não é sua"); return; }
+  const lockVend = !ehGestor();
+  const vendOpts = VENDEDORAS.map(v=>`<option ${e.vendedora===v?'selected':''}>${v}</option>`).join("");
+  openModal(`
+    <h2>Editar encomenda</h2>
+    <div class="grid" style="margin-top:12px">
+      <div class="full"><label>Modelo</label><input id="ed-modelo" value="${attr(e.modelo)}"></div>
+      <div><label>Numeração</label><input id="ed-num" value="${attr(e.numeracao)}"></div>
+      <div><label>Qtd pares</label><input id="ed-qtd" type="number" min="1" value="${e.qtd||1}"></div>
+      <div><label>Vendedora</label><select id="ed-vend" ${lockVend?'disabled':''}>${vendOpts}</select></div>
+      <div><label>Cliente</label><input id="ed-cliente" value="${attr(e.cliente)}"></div>
+      <div class="full"><label>Contato do cliente</label><input id="ed-contato" value="${attr(e.contato)}"></div>
+      <div class="full"><label>Observações</label><textarea id="ed-obs">${txt(e.obs)}</textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="salvarEdicao('${e.id}')">Salvar</button>
+    </div>
+  `);
+}
+async function salvarEdicao(id){
+  const patch = {
+    modelo:   document.getElementById("ed-modelo").value.trim(),
+    numeracao:document.getElementById("ed-num").value.trim(),
+    qtd:      parseInt(document.getElementById("ed-qtd").value)||1,
+    vendedora:ehGestor() ? document.getElementById("ed-vend").value : currentUser.nome,
+    cliente:  document.getElementById("ed-cliente").value.trim(),
+    contato:  document.getElementById("ed-contato").value.trim(),
+    obs:      document.getElementById("ed-obs").value.trim()
+  };
+  await atualizar(id, patch);
+  closeModal(); toast("Encomenda atualizada ✔");
+}
+
+/* ==================== PAGAMENTO ==================== */
+function abrirPagamento(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const total = e.valorTotal||0, pago = totalPago(e), saldo = saldoDe(e);
+  const lista = Array.isArray(e.pagamentos) ? e.pagamentos.slice()
+              : (e.valorPago>0 ? [{data:e.dataCriacao, valor:e.valorPago}] : []);
+  const hist = lista.length
+    ? lista.map(p=>`<div class="fc-row"><span>${fmtData(p.data)}</span><b>${fmtMoeda(p.valor)}</b></div>`).join("")
+    : `<div style="opacity:.6;font-size:13px;padding:4px 0">Nenhum pagamento registrado.</div>`;
+  openModal(`
+    <h2>Pagamento</h2>
+    <p class="hint">${e.modelo||''} — ${e.cliente||'cliente'}</p>
+    <div class="stats" style="margin:12px 0">
+      <div class="stat"><div class="n" style="font-size:18px">${fmtMoeda(total)}</div><div class="l">Total</div></div>
+      <div class="stat"><div class="n" style="font-size:18px">${fmtMoeda(pago)}</div><div class="l">Já pago</div></div>
+      <div class="stat ${saldo>0?'alert':''}"><div class="n" style="font-size:18px">${fmtMoeda(saldo)}</div><div class="l">Saldo</div></div>
+    </div>
+    <div class="grid">
+      <div><label>Valor total (R$)</label><input id="pg-total" type="number" step="0.01" value="${total||''}"></div>
+      <div><label>Registrar pagamento (R$)</label><input id="pg-valor" type="number" step="0.01" placeholder="0,00"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" onclick="salvarPagamento('${e.id}')">Registrar pagamento</button>
+      <button class="btn ghost" onclick="quitarSaldo('${e.id}')">Quitar saldo</button>
+      <button class="btn ghost sm" style="margin-left:auto" onclick="closeModal()">Fechar</button>
+    </div>
+    <div style="margin-top:16px"><label>Histórico de pagamentos</label>${hist}</div>
+  `);
+}
+function _pagamentosBase(e){
+  return Array.isArray(e.pagamentos) ? e.pagamentos.slice()
+       : (e.valorPago>0 ? [{data:e.dataCriacao||Date.now(), valor:e.valorPago}] : []);
+}
+async function salvarPagamento(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const total = parseFloat(document.getElementById("pg-total").value)||0;
+  const valor = parseFloat(document.getElementById("pg-valor").value)||0;
+  const pagamentos = _pagamentosBase(e);
+  if(valor>0) pagamentos.push({data:Date.now(), valor});
+  const soma = pagamentos.reduce((s,p)=>s+p.valor,0);
+  await atualizar(id, {valorTotal:total, pagamentos, valorPago:soma,
+    pagamento:(total>0 && soma>=total)?"pago":(soma>0?"parcial":"pendente")});
+  closeModal(); toast("Pagamento registrado ✔");
+}
+async function quitarSaldo(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const total = parseFloat(document.getElementById("pg-total").value) || (e.valorTotal||0);
+  const pagamentos = _pagamentosBase(e);
+  const soma0 = pagamentos.reduce((s,p)=>s+p.valor,0);
+  const saldo = Math.max(0, total - soma0);
+  if(saldo>0) pagamentos.push({data:Date.now(), valor:saldo});
+  const soma = pagamentos.reduce((s,p)=>s+p.valor,0);
+  await atualizar(id, {valorTotal:total, pagamentos, valorPago:soma, pagamento:"pago"});
+  closeModal(); toast("Saldo quitado ✔");
+}
+
+/* ==================== SELEÇÃO MÚLTIPLA ==================== */
+function toggleSel(id, checked){ if(checked) selecionados.add(id); else selecionados.delete(id); atualizarBarra(); }
+function limparSelecao(){ selecionados.clear(); renderGestor(); }
+function atualizarBarra(){
+  const bar=document.getElementById("bulk-bar"); if(!bar) return;
+  if(selecionados.size===0){ bar.classList.remove("show"); bar.innerHTML=""; return; }
+  bar.classList.add("show");
+  bar.innerHTML=`<span>${selecionados.size} selecionada(s)</span>
+    <button class="btn sm" onclick="bulkStatus('enviada')">Marcar enviadas à fábrica</button>
+    <button class="btn ghost sm" onclick="bulkStatus('recebida')">Marcar recebidas</button>
+    <button class="btn ghost sm" style="margin-left:auto" onclick="limparSelecao()">Limpar</button>`;
+}
+async function bulkStatus(status){
+  const ids=[...selecionados]; if(ids.length===0) return;
+  const agora=Date.now();
+  for(const id of ids){
+    const e=encomendas.find(x=>x.id===id); if(!e) continue;
+    const patch={status};
+    if(status==="enviada"  && !e.dataEnvio)    patch.dataEnvio=agora;
+    if(status==="recebida" && !e.dataRecebida) patch.dataRecebida=agora;
+    await atualizar(id, patch);
+  }
+  selecionados.clear();
+  renderTudo();
+  toast(`${ids.length} encomenda(s) atualizada(s) ✔`);
+}
+
+/* ==================== COBRAR FÁBRICA (só dados do sapato) ==================== */
+function cobrarFabrica(fab){
+  const atrasados = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida"
+    && e.status!=="finalizada" && e.status!=="cancelada" && diasDe(e)>PRAZO_DIAS)
+    .sort((a,b)=>baseClock(a)-baseClock(b));
+  if(atrasados.length===0){ toast("Nenhuma encomenda atrasada nessa fábrica"); return; }
+  let t = `*LORETTO SCARPA — Cobrança de Encomenda*\n`;
+  t += `Fábrica: ${fab}\n`;
+  t += `Olá! Seguem os pedidos que já passaram do prazo de ${PRAZO_DIAS} dias:\n`;
+  t += `————————————————\n`;
+  atrasados.forEach((e,i)=>{
+    t += `\n${i+1}) ${e.modelo} — nº ${e.numeracao||'-'}${e.qtd>1?` (${e.qtd} pares)`:''} — ${diasDe(e)} dias`;
+  });
+  t += `\n————————————————\nConseguem me passar uma previsão de entrega? Obrigado!`;
+  const tel = telDaFabrica(fab).replace(/\D/g,"");
+  const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(t)}`
+                  : `https://api.whatsapp.com/send?text=${encodeURIComponent(t)}`;
+  window.open(url,"_blank");
+}
+
+/* ==================== DUPLICAR ENCOMENDA ==================== */
+async function duplicarEncomenda(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  if(!ehGestor() && e.vendedora!==currentUser.nome){ toast("Essa encomenda não é sua"); return; }
+  if(!confirm("Duplicar esta encomenda para um novo cliente? (mantém modelo, numeração e foto; zera cliente e pagamento)")) return;
+  const novo = {
+    modelo:e.modelo, numeracao:e.numeracao, qtd:e.qtd||1, vendedora:(ehGestor()?e.vendedora:currentUser.nome),
+    fabrica:e.fabrica||"", cliente:"", contato:"",
+    pagamento:"pendente", valorTotal:e.valorTotal||0, valorPago:0, pagamentos:[],
+    obs:e.obs||"", foto:e.foto||null, status:"aberta", dataCriacao:Date.now()
+  };
+  if(usaFirebase){ try{ await db.collection("encomendas").add(novo); }catch(err){toast("Erro");return;} }
+  else { novo.id="loc"+Date.now(); encomendas.push(novo); renderTudo(); }
+  toast("Encomenda duplicada ✔ preencha o novo cliente");
+}
+
+/* ==================== LEMBRETE DE RETIRADA ==================== */
+function msgLembrete(e){
+  const nome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
+  const ola = nome ? `Olá, ${nome}!` : "Olá!";
+  const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
+  return `${ola} Aqui é da *Loretto Scarpa*. 👞\n\nPassando para lembrar que o seu sapato da encomenda *${modelo}* continua aqui na loja te esperando 😊. Quer combinar a retirada ou prefere que eu leve até você?`;
+}
+function avisarLembrete(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const msg = msgLembrete(e);
+  if(e.contato){ window.open(`https://wa.me/${waNum(e.contato)}?text=${encodeURIComponent(msg)}`,"_blank"); }
+  else { navigator.clipboard.writeText(msg).then(()=>toast("Cliente sem contato — lembrete copiado")).catch(()=>prompt("Copie:",msg)); }
+}
+
+/* ==================== WHATSAPP ==================== */
+function textoFabrica(fab){
+  const itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida")
+                          .sort((a,b)=>a.dataCriacao-b.dataCriacao);
+  if(itens.length===0) return null;
+  let t = `*LORETTO SCARPA — Pedido de Encomenda*\n`;
+  t += `Fábrica: ${fab}\n`;
+  t += `Data: ${fmtData(Date.now())}\n`;
+  t += `Total de itens: ${itens.length}\n`;
+  t += `————————————————\n`;
+  itens.forEach((e,i)=>{
+    const d=diasDe(e);
+    t += `\n*${i+1}) ${e.modelo}*\n`;
+    t += `   • Numeração: ${e.numeracao||'-'}${e.qtd>1?` (${e.qtd} pares)`:''}\n`;
+    if(e.obs) t += `   • Obs: ${e.obs}\n`;
+    t += `   • Vendedora: ${e.vendedora}\n`;
+    t += `   • Pedido há ${d} dia(s)${d>PRAZO_DIAS?' ⚠️ ATRASADO':''}\n`;
+  });
+  t += `\n————————————————\nPrazo combinado: até ${PRAZO_DIAS} dias.`;
+  return t;
+}
+function copiarWhats(fab){
+  const t = textoFabrica(fab);
+  if(!t){ toast("Sem itens em aberto nessa fábrica"); return; }
+  navigator.clipboard.writeText(t).then(()=>toast("Pedido copiado ✔ cole no WhatsApp"))
+    .catch(()=>{ prompt("Copie o texto:", t); });
+}
+function abrirWhats(fab){
+  const t = textoFabrica(fab);
+  if(!t){ toast("Sem itens em aberto nessa fábrica"); return; }
+  const tel = telDaFabrica(fab).replace(/\D/g,"");
+  const url = tel
+    ? `https://wa.me/${tel}?text=${encodeURIComponent(t)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(t)}`;
+  window.open(url,"_blank");
+}
+
+/* ==================== PDF ==================== */
+async function gerarPDF(fab){
+  const itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida")
+                          .sort((a,b)=>a.dataCriacao-b.dataCriacao);
+  if(itens.length===0){ toast("Sem itens em aberto nessa fábrica"); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"mm",format:"a4"});
+  const W=210, M=15; let y=0;
+  const verde=[74,92,42], gold=[201,169,80], creme=[244,239,227], cinza=[90,90,90];
+
+  // cabeçalho
+  doc.setFillColor(...verde); doc.rect(0,0,W,32,"F");
+  doc.setTextColor(...gold); doc.setFont("times","bold"); doc.setFontSize(20);
+  doc.text("LORETTO SCARPA", M, 15);
+  doc.setTextColor(...creme); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+  doc.text("Pedido de Encomenda", M, 22);
+  doc.setFontSize(9); doc.setTextColor(220,210,180);
+  doc.text(`Fábrica: ${fab}`, M, 28);
+  doc.text(`${fmtData(Date.now())}  |  ${itens.length} item(ns)`, W-M, 28, {align:"right"});
+  y=42;
+
+  for(let i=0;i<itens.length;i++){
+    const e=itens[i];
+    const blocoH=38;
+    if(y+blocoH>282){ doc.addPage(); y=20; }
+
+    // moldura
+    doc.setDrawColor(...gold); doc.setLineWidth(0.3);
+    doc.roundedRect(M, y, W-2*M, blocoH-4, 1.5, 1.5);
+
+    // foto
+    if(e.foto){
+      try{ doc.addImage(e.foto,"JPEG", M+2, y+2, 30, 30); }
+      catch(err){ doc.setFontSize(7);doc.text("(foto)",M+8,y+18); }
+    } else {
+      doc.setFillColor(235,232,222); doc.rect(M+2,y+2,30,30,"F");
+      doc.setTextColor(150,150,150); doc.setFontSize(7);
+      doc.text("SEM FOTO", M+9, y+18);
+    }
+
+    const x=M+38;
+    doc.setTextColor(...verde); doc.setFont("times","bold"); doc.setFontSize(13);
+    doc.text(`${i+1}. ${e.modelo}`, x, y+8);
+
+    doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(40,40,40);
+    let ly=y+15;
+    const linha=(lbl,val)=>{ if(!val) return;
+      doc.setFont("helvetica","bold"); doc.text(`${lbl}: `, x, ly);
+      const lw=doc.getTextWidth(`${lbl}: `);
+      doc.setFont("helvetica","normal"); doc.text(String(val), x+lw, ly); ly+=5.5; };
+    linha("Numeração", `${e.numeracao||'-'}${e.qtd>1?`  (${e.qtd} pares)`:''}`);
+    if(e.cliente) linha("Cliente", e.cliente);
+    linha("Vendedora", e.vendedora);
+    if(e.obs) linha("Obs", e.obs);
+
+    const d=diasDe(e);
+    doc.setFontSize(8.5);
+    if(d>PRAZO_DIAS){ doc.setTextColor(179,64,47); doc.setFont("helvetica","bold");
+      doc.text(`Pedido ha ${d} dias - ATRASADO`, W-M-2, y+8, {align:"right"}); }
+    else { doc.setTextColor(...cinza); doc.text(`Pedido ha ${d} dia(s)`, W-M-2, y+8, {align:"right"}); }
+
+    y+=blocoH;
+  }
+
+  // rodapé
+  doc.setFontSize(8); doc.setTextColor(...cinza);
+  doc.text(`Prazo combinado: ate ${PRAZO_DIAS} dias.`, M, 290);
+
+  const nome = `Encomenda_${fab.replace(/[^a-zA-Z0-9]/g,'_')}_${fmtData(Date.now()).replace(/\//g,'-')}.pdf`;
+  doc.save(nome);
+  toast("PDF gerado ✔");
+}
+
+/* ==================== UTIL ==================== */
+function fmtData(ts){ const d=new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+function fmtMoeda(v){ return "R$ "+(Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function waNum(c){ let d=String(c||"").replace(/\D/g,""); if(d && !d.startsWith("55")) d="55"+d; return d; }
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function attr(s){ return String(s==null?"":s).replace(/"/g,"&quot;"); }
+function txt(s){ return String(s==null?"":s).replace(/</g,"&lt;"); }
+
+/* ==================== MODAL ==================== */
+function openModal(html){ document.getElementById("modal-card").innerHTML=html; document.getElementById("modal").classList.add("show"); }
+function closeModal(){ document.getElementById("modal").classList.remove("show"); }
+
+/* ==================== PONTUALIDADE POR FÁBRICA ==================== */
+function renderFabricas(){
+  const cont=document.getElementById("fabricas-list"); if(!cont) return;
+  const map={};
+  encomendas.forEach(e=>{
+    if(!e.fabrica) return;
+    if(e.status!=="recebida" && e.status!=="finalizada") return;
+    const fim = e.dataRecebida || e.dataFinalizada; if(!fim) return;
+    const dias = Math.max(0, Math.floor((fim - baseClock(e))/86400000));
+    (map[e.fabrica]=map[e.fabrica]||[]).push(dias);
+  });
+  const fabs=Object.keys(map).sort();
+  if(fabs.length===0){
+    cont.innerHTML=`<div class="panel empty"><div class="lion">&#9876;</div>
+      Ainda não há entregas registradas para calcular a pontualidade.<br>
+      <span style="font-size:13px;opacity:.8">Os números aparecem conforme você marca encomendas como recebidas.</span></div>`;
+    return;
+  }
+  let html=`<div class="grid-cards" style="margin-top:16px">`;
+  fabs.forEach(f=>{
+    const arr=map[f], n=arr.length;
+    const media=arr.reduce((a,b)=>a+b,0)/n;
+    const noPrazo=arr.filter(x=>x<=PRAZO_DIAS).length;
+    const pct=Math.round(noPrazo/n*100), pctAtr=100-pct;
+    html+=`<div class="fab-card">
+      <h3>${f}</h3>
+      <div class="fc-row"><span>Entregas</span><b>${n}</b></div>
+      <div class="fc-row"><span>Tempo médio</span><b>${media.toFixed(1)} dias</b></div>
+      <div class="fc-row"><span>No prazo (até ${PRAZO_DIAS}d)</span><b>${pct}%</b></div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="fc-row" style="opacity:.85"><span>Atraso</span><b style="color:#f0a193">${pctAtr}%</b></div>
+    </div>`;
+  });
+  html+=`</div>`;
+  cont.innerHTML=html;
+}
+let toastT;
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg;
+  el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2600); }
+
+renderTudo();
+
+// reentra automaticamente se já houver sessão aberta
+(function(){
+  const saved=store.get("ls_user");
+  if(saved){ try{ currentUser=JSON.parse(saved); entrarApp(); }catch(e){} }
+})();
+</script>
+<div id="etq-print" class="etq-print"></div>
+</body>
+</html>
