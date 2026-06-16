@@ -591,7 +591,7 @@ if (usaFirebase){
   try{
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
-    db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+    /* persistencia offline do Firestore REMOVIDA: causava disputa de IndexedDB com a sessao do Firebase Auth quando embarcado no hub (derrubava Edson/Yuri). Dashboard online nao precisa de cache offline. */
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     firebase.auth().onAuthStateChanged(user=>{
       if(user){
