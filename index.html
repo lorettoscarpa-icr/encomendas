@@ -273,6 +273,13 @@
 
   .footnote{text-align:center;font-size:11px;color:var(--creme-suave);opacity:.5;
     margin-top:30px;letter-spacing:.1em;font-family:'DM Mono'}
+/* ===== Lista de pendências do formulário ===== */
+.form-erros{background:rgba(193,75,75,.12);border:1px solid rgba(214,120,120,.5);border-radius:12px;padding:14px 16px;color:#f3d9d2}
+.form-erros b{display:block;font-weight:700;margin-bottom:6px;color:#f0c6bc}
+.form-erros ul{margin:0;padding-left:18px}
+.form-erros li{margin:3px 0;font-size:14px}
+input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(214,120,120,.25)}
+
 /* ===== Etiqueta de encomenda (colar no sapato) ===== */
 .etq-print{display:none}
 .etq{width:80mm;min-height:60mm;box-sizing:border-box;padding:5mm 5.5mm;background:#fff;color:#1d2b14;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
@@ -330,10 +337,10 @@
     <div class="tabs">
       <button class="tab active" data-view="nova">Nova Encomenda</button>
       <button class="tab tab-gestor" data-view="gestor">Painel do Gestor</button>
-      <button class="tab tab-gestor" data-view="fabricas">Fábricas</button>
       <button class="tab" data-view="andamento">Em andamento</button>
       <button class="tab" data-view="recebidas">Recebidas</button>
       <button class="tab" data-view="finalizadas">Finalizadas</button>
+      <button class="tab tab-gestor" data-view="fabricas">Fábricas</button>
     </div>
   </header>
 
@@ -387,25 +394,27 @@
           <input id="f-contato" placeholder="Ex.: 62 9 9999-9999">
         </div>
         <div>
-          <label>Pagamento</label>
-          <select id="f-pag">
-            <option value="pendente">Pendente</option>
+          <label>Pagamento *</label>
+          <select id="f-pag" onchange="onPagChange()">
+            <option value="">— Selecione —</option>
+            <option value="aberto">Em aberto (nada pago)</option>
             <option value="parcial">Pagamento parcial</option>
             <option value="pago">Pago integral</option>
           </select>
         </div>
         <div>
-          <label>Valor total <span style="opacity:.5;text-transform:none">(R$ — opcional)</span></label>
+          <label id="lbl-vtotal">Valor total <span style="opacity:.5;text-transform:none">(R$)</span></label>
           <input id="f-vtotal" type="number" min="0" step="0.01" placeholder="0,00">
         </div>
         <div>
-          <label>Valor pago <span style="opacity:.5;text-transform:none">(R$ — opcional)</span></label>
+          <label id="lbl-vpago">Valor pago <span style="opacity:.5;text-transform:none">(R$)</span></label>
           <input id="f-vpago" type="number" min="0" step="0.01" placeholder="0,00">
         </div>
         <div class="full">
           <label>Observações</label>
           <textarea id="f-obs" placeholder="Cor, ajustes, detalhes de acabamento, solado, etc."></textarea>
         </div>
+        <div class="full" id="form-erros" style="display:none"></div>
         <div class="full" style="display:flex;gap:10px;justify-content:flex-end">
           <button class="btn ghost" onclick="limparForm()">Limpar</button>
           <button class="btn" onclick="salvarEncomenda()">Registrar encomenda</button>
@@ -460,7 +469,7 @@
   <section id="view-recebidas" class="view">
     <div class="panel">
       <h2>Encomendas recebidas</h2>
-      <p class="hint">Modelos que já chegaram da fábrica. O <b>gestor</b> avisa a vendedora pelo botão “Avisar vendedora”. A <b>vendedora</b> vê os próprios modelos e aciona o cliente em “Avisar cliente” — a mensagem muda conforme o pagamento. Ao concluir, a vendedora clica em “Finalizar”.</p>
+      <p class="hint">Modelos que já chegaram da fábrica. O <b>gestor</b> avisa a vendedora pelo botão “Avisar vendedora”. A <b>vendedora</b> vê os próprios modelos e aciona o cliente em “Avisar cliente”. Ao concluir, a vendedora clica em “Finalizar”.</p>
     </div>
     <input id="busca-rec" class="busca-box" placeholder="🔍 Buscar cliente, modelo ou numeração" oninput="renderRecebidas()">
     <div id="recebidas-list"></div>
@@ -756,6 +765,15 @@ function logout(){
 renderLoginGrid();
 
 /* ==================== SALVAR ==================== */
+function onPagChange(){
+  const pag=document.getElementById("f-pag").value;
+  const lt=document.getElementById("lbl-vtotal"), lp=document.getElementById("lbl-vpago");
+  const req='<span style="color:#e6b8b8;text-transform:none">*</span>';
+  const opt='<span style="opacity:.5;text-transform:none">(R$)</span>';
+  if(lt) lt.innerHTML='Valor total '+((pag==="parcial"||pag==="pago")?req:opt);
+  if(lp) lp.innerHTML='Valor pago '+((pag==="parcial")?req:opt);
+}
+
 async function salvarEncomenda(){
   const modelo = document.getElementById("f-modelo").value.trim();
   // se quem registra é vendedora, a encomenda sai sempre no nome dela
@@ -763,14 +781,41 @@ async function salvarEncomenda(){
   const num = document.getElementById("f-num").value.trim();
   const cliente = document.getElementById("f-cliente").value.trim();
   const contato = document.getElementById("f-contato").value.trim();
-  if(!vend){ toast("Selecione a vendedora"); return; }
-  if(!num){ toast("Informe a numeração"); return; }
-  if(!cliente){ toast("Informe o nome do cliente"); return; }
+  const pag = document.getElementById("f-pag").value;
+  const vtotal = parseFloat(document.getElementById("f-vtotal").value)||0;
+  let vpago = parseFloat(document.getElementById("f-vpago").value)||0;
 
-  // foto vai para o Firebase Storage (guarda só o link); em modo demo fica em base64
+  // valida tudo de uma vez e mostra a lista do que está faltando
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  const faltando=[]; const marca=id=>{const el=document.getElementById(id); if(el) el.classList.add("err");};
+  if(ehGestor() && !vend){ faltando.push("Selecionar a vendedora"); marca("f-vend"); }
+  if(!num){ faltando.push("Numeração"); marca("f-num"); }
+  if(!cliente){ faltando.push("Nome do cliente"); marca("f-cliente"); }
+  if(!contato){ faltando.push("Telefone do cliente"); marca("f-contato"); }
+  if(!pag){ faltando.push("Forma de pagamento"); marca("f-pag"); }
+  else if(pag==="parcial"){
+    if(!(vtotal>0)){ faltando.push("Valor total da encomenda"); marca("f-vtotal"); }
+    if(!(vpago>0)){ faltando.push("Valor já pago (pagamento parcial)"); marca("f-vpago"); }
+    else if(vtotal>0 && vpago>=vtotal){ faltando.push("No parcial, o valor pago deve ser menor que o total"); marca("f-vpago"); }
+  } else if(pag==="pago"){
+    if(!(vtotal>0)){ faltando.push("Valor total (pago integral)"); marca("f-vtotal"); }
+    else vpago=vtotal; // pago integral: pago = total
+  } else if(pag==="aberto"){
+    vpago=0; // em aberto: nada pago ainda
+  }
+
+  const box=document.getElementById("form-erros");
+  if(faltando.length){
+    box.innerHTML='<b>Faltam estas informações para registrar:</b><ul>'+faltando.map(f=>`<li>${f}</li>`).join("")+'</ul>';
+    box.style.display="block"; box.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  box.style.display="none";
+
   // a foto vai direto no documento (base64), já redimensionada — sem Firebase Storage, sem CORS
   let foto = fotoAtual;
 
+  const pagamentos = vpago>0 ? [{data:Date.now(), valor:vpago}] : [];
   const reg = {
     modelo,
     numeracao: num,
@@ -779,9 +824,10 @@ async function salvarEncomenda(){
     fabrica: "",
     cliente: cliente,
     contato: contato,
-    pagamento: document.getElementById("f-pag").value,
-    valorTotal: parseFloat(document.getElementById("f-vtotal").value)||0,
-    valorPago: parseFloat(document.getElementById("f-vpago").value)||0,
+    pagamento: pag,
+    valorTotal: vtotal,
+    valorPago: vpago,
+    pagamentos: pagamentos,
     obs: document.getElementById("f-obs").value.trim(),
     foto: foto,
     status: "aberta",
@@ -801,6 +847,9 @@ function limparForm(){
   document.getElementById("f-qtd").value=1;
   document.getElementById("f-vend").selectedIndex=0;
   document.getElementById("f-pag").selectedIndex=0;
+  onPagChange();
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  const box=document.getElementById("form-erros"); if(box){ box.style.display="none"; box.innerHTML=""; }
   fotoAtual=null;
   document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
   document.getElementById("fotoCam").value=""; document.getElementById("fotoFile").value="";
@@ -1022,7 +1071,7 @@ function pagBadge(e){
     const txt = e.valorTotal? `Parcial · falta ${fmtMoeda(saldoDe(e))}` : "Parcial";
     return `<span class="badge b-parcial">${txt}</span>`;
   }
-  return `<span class="badge b-pend">Pendente</span>`;
+  return `<span class="badge b-pend">Aberto</span>`;
 }
 
 /* ==================== RECEBIDAS / AVISO AO CLIENTE ==================== */
@@ -1080,7 +1129,8 @@ function cardRecebida(e){
            <button class="btn ghost sm" onclick="finalizarPedido('${e.id}')">✓ Finalizar</button>`
         : `<button class="btn sm" style="flex:1;min-width:130px" onclick="avisarVendedora('${e.id}')">${WA_ICON}Avisar vendedora</button>
            <button class="icon-btn" title="Copiar mensagem p/ vendedora" onclick="copiarMsgVendedora('${e.id}')">📋</button>
-           <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>`}
+           <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
+           <button class="icon-btn" title="Voltar para Em andamento (marquei por engano)" onclick="voltarAndamento('${e.id}')">↩</button>`}
     </div>
   </div>`;
 }
@@ -1088,21 +1138,22 @@ function cardRecebida(e){
 function msgCliente(e){
   const nome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
   const ola = nome ? `Olá, ${nome}!` : "Olá!";
-  const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
-  if(isPago(e)){
-    return `${ola} Aqui é da *Loretto Scarpa*. 👞✨\n\nO seu sapato da encomenda *${modelo}* chegou aqui na loja! Você consegue retirar aqui comigo ou prefere que eu entregue pra você?`;
-  }
-  const saldo = saldoDe(e);
-  const valor = (e.valorTotal>0 && saldo>0) ? ` no valor de *${fmtMoeda(saldo)}*` : "";
-  return `${ola} Aqui é da *Loretto Scarpa*. 👞✨\n\nO seu sapato da encomenda *${modelo}* chegou aqui na loja! Falta apenas o pagamento do saldo${valor} da sua encomenda — assim que confirmado, você consegue retirar aqui comigo ou, se preferir, eu entrego pra você.`;
+  const modelo = [e.modelo, e.numeracao?`(Numeração ${e.numeracao})`:""].filter(Boolean).join(" ") || "encomenda";
+  return `${ola} O seu sapato de encomenda *${modelo}* acabou de chegar aqui na loja! Você consegue dar uma passadinha aqui ou prefere que eu entregue pra você?`;
 }
 
 /* mensagem e aviso do gestor para a vendedora */
 function telVendedora(nome){ const u=USUARIOS.find(x=>x.papel==="vendedora"&&x.nome===nome); return u?u.tel:""; }
 function msgVendedora(e){
-  const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
-  const cli = e.cliente ? ` do cliente ${e.cliente}` : "";
-  return `Olá, ${e.vendedora}! 👞\n\nO seu sapato da encomenda *${modelo}*${cli} acabou de chegar na loja. Já pode avisar o cliente para a retirada. ✨`;
+  const modelo = [e.modelo, e.numeracao?`(Numeração ${e.numeracao})`:""].filter(Boolean).join(" ") || "encomenda";
+  const cliNome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
+  const cli = cliNome ? ` do cliente ${cliNome}` : "";
+  const pago = totalPago(e), saldo = saldoDe(e);
+  let pag;
+  if(isPago(e)) pag = "Pagamento: *totalmente pago*.";
+  else if(pago>0) pag = `Pagamento *parcial*: já recebido ${fmtMoeda(pago)}` + (e.valorTotal>0 ? `, ainda falta *${fmtMoeda(saldo)}*.` : ".");
+  else pag = "Pagamento: *em aberto* (nada pago ainda)." + (e.valorTotal>0 ? ` Valor total ${fmtMoeda(e.valorTotal)}.` : "");
+  return `Olá, ${e.vendedora}!\n\nO seu sapato da encomenda *${modelo}*${cli} acabou de chegar na loja.\n\n${pag}\n\nJá pode avisar o cliente para a retirada.`;
 }
 function avisarVendedora(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
@@ -1287,6 +1338,13 @@ async function mudarStatus(id, status){
   if(status==="recebida" && e && ehGestor()){
     setTimeout(()=>{ if(confirm(`Sapato recebido! Avisar a vendedora ${e.vendedora} pelo WhatsApp agora?`)) avisarVendedora(id); }, 150);
   }
+}
+async function voltarAndamento(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  if(!confirm("Voltar esta encomenda para “Em andamento”?\n(use caso tenha marcado a chegada por engano)")) return;
+  const novo = e.fabrica ? "enviada" : "aberta";   // volta pro estágio anterior à chegada
+  await atualizar(id, {status:novo, dataRecebida:null});
+  toast("Encomenda voltou para Em andamento ↩");
 }
 async function mudarFabrica(id, fabrica){
   await atualizar(id, {fabrica});
