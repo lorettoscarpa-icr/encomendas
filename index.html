@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase (compat 10.7.0) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -19,30 +19,30 @@
 
 <style>
   :root{
-    --verde:#4a5c2a;
-    --verde-esc:#3a4720;
-    --verde-fundo:#2f3a1a;
-    --gold:#c9a950;
-    --gold-claro:#e0c87f;
-    --creme:#f4efe3;
-    --creme-suave:#d8d0bd;
-    --vermelho:#b3402f;
+    /* Paleta unificada Loretto Scarpa — alinhada à Central de Metas (modo escuro) */
+    --verde:#46672f;
+    --verde-esc:#1f3013;
+    --verde-fundo:#283d1a;
+    --gold:#d4b45a;
+    --gold-claro:#ebd48a;
+    --creme:#f8f3e6;
+    --creme-suave:rgba(248,243,230,.6);
+    --vermelho:#c0504a;
     --vermelho-bg:#5a2018;
     --ambar:#d98c2b;
     --ambar-bg:#4f3915;
-    --ok:#8ba35a;
+    --ok:#5cb85c;
     --ok-bg:#3c4a22;
-    --linha:rgba(201,169,80,.22);
+    --linha:rgba(212,180,90,.30);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:'Barlow',sans-serif;
-    background:var(--verde-fundo);
-    background-image:radial-gradient(circle at 18% -10%, rgba(201,169,80,.10), transparent 45%),
-                     radial-gradient(circle at 90% 0%, rgba(201,169,80,.06), transparent 40%);
+    background:radial-gradient(ellipse 120% 60% at 50% 100%,rgba(212,180,90,.06) 0%,transparent 60%),radial-gradient(ellipse 80% 40% at 50% 0%,rgba(74,99,48,.4) 0%,transparent 50%),var(--verde-fundo);
     color:var(--creme);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
+    font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1;
   }
   .wrap{max-width:1180px;margin:0 auto;padding:0 18px 90px}
 
@@ -60,7 +60,7 @@
     letter-spacing:.02em;line-height:1;
   }
   .brand .sub{
-    font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.35em;
+    font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:.35em;
     text-transform:uppercase;color:var(--gold-claro);opacity:.85;margin-top:6px;
   }
 
@@ -125,7 +125,7 @@
   }
   .btn:hover{background:var(--gold-claro);border-color:var(--gold-claro)}
   .btn.ghost{background:transparent;color:var(--gold-claro)}
-  .btn.ghost:hover{background:rgba(201,169,80,.12)}
+  .btn.ghost:hover{background:rgba(212,180,90,.12)}
   .btn.sm{padding:8px 14px;font-size:12px}
   .btn.danger{border-color:var(--vermelho);background:transparent;color:#e88}
   .btn.danger:hover{background:rgba(179,64,47,.18)}
@@ -134,7 +134,7 @@
   .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
   .stat{flex:1;min-width:120px;background:var(--verde);border:1px solid var(--linha);
     border-radius:4px;padding:14px 16px}
-  .stat .n{font-family:'DM Mono';font-size:26px;font-weight:500;color:var(--gold-claro)}
+  .stat .n{font-family:'Barlow';font-size:26px;font-weight:500;color:var(--gold-claro)}
   .stat .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--creme-suave);margin-top:2px}
   .stat.alert .n{color:#f0a193}
 
@@ -149,7 +149,7 @@
     background:var(--verde-esc);padding:14px 18px;border-bottom:1px solid var(--linha)
   }
   .fab-head h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--creme)}
-  .fab-head .count{font-family:'DM Mono';font-size:12px;color:var(--gold-claro);
+  .fab-head .count{font-family:'Barlow';font-size:12px;color:var(--gold-claro);
     border:1px solid var(--linha);padding:2px 9px;border-radius:20px}
   .fab-head .acts{display:flex;gap:8px;flex-wrap:wrap}
   .fab-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
@@ -170,7 +170,7 @@
     letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
   .oc-obs{font-size:13px;color:var(--creme-suave);font-style:italic;border-top:1px solid var(--linha);padding-top:7px}
   .badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .badge{font-family:'DM Mono';font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.03em}
+  .badge{font-family:'Barlow';font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.03em}
   .b-dias{background:var(--ok-bg);color:#cfe0a3}
   .b-dias.atraso{background:var(--vermelho-bg);color:#f3b4a8}
   .b-dias.atencao{background:var(--ambar-bg);color:#f0cd92}
@@ -194,7 +194,7 @@
   .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
   .num-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .busca-box{width:100%;margin-top:14px}
-  .num-btn{font-family:'DM Mono';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
+  .num-btn{font-family:'Barlow';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
     background:var(--verde-esc);color:var(--creme-suave);border-radius:3px;cursor:pointer;transition:.12s}
   .num-btn:hover{border-color:var(--gold)}
   .num-btn.on{background:var(--gold);color:var(--verde-fundo);border-color:var(--gold);font-weight:600}
@@ -218,7 +218,7 @@
   .fab-card{background:var(--verde);border:1px solid var(--linha);border-radius:4px;padding:16px 18px}
   .fab-card h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--creme);margin-bottom:10px}
   .fc-row{display:flex;justify-content:space-between;font-size:13px;color:var(--creme-suave);padding:4px 0}
-  .fc-row b{color:var(--gold-claro);font-family:'DM Mono'}
+  .fc-row b{color:var(--gold-claro);font-family:'Barlow'}
   .bar{height:8px;background:var(--verde-esc);border-radius:5px;overflow:hidden;margin:8px 0;border:1px solid var(--linha)}
   .bar-fill{height:100%;background:var(--gold);border-radius:5px}
 
@@ -226,28 +226,28 @@
   .banner{background:var(--ambar-bg);border:1px solid var(--ambar);color:#f3d8a8;
     padding:11px 16px;border-radius:4px;font-size:13px;margin-top:14px;display:none}
   .banner.show{display:block}
-  .banner code{font-family:'DM Mono';background:rgba(0,0,0,.25);padding:1px 6px;border-radius:3px}
+  .banner code{font-family:'Barlow';background:rgba(0,0,0,.25);padding:1px 6px;border-radius:3px}
 
   /* TOAST */
   /* LOGIN */
   #login{position:fixed;inset:0;background:var(--verde-fundo);z-index:200;
     display:flex;align-items:center;justify-content:center;padding:32px 18px;overflow:auto;
-    background-image:radial-gradient(circle at 50% -5%, rgba(201,169,80,.10), transparent 55%),
-                     radial-gradient(circle at 90% 110%, rgba(201,169,80,.05), transparent 45%)}
+    background-image:radial-gradient(circle at 50% -5%, rgba(212,180,90,.10), transparent 55%),
+                     radial-gradient(circle at 90% 110%, rgba(212,180,90,.05), transparent 45%)}
   .login-inner{max-width:900px;width:100%;text-align:center;margin:auto;zoom:.6}
-  .sel-eyebrow{font-family:'DM Mono';font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-claro);margin-bottom:20px}
+  .sel-eyebrow{font-family:'Barlow';font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-claro);margin-bottom:20px}
   .sel-title{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(40px,7vw,66px);color:var(--creme);line-height:1.04}
   .sel-title em{font-style:italic;color:var(--gold)}
   .sel-sub{font-size:clamp(14px,2.1vw,17px);color:var(--creme-suave);margin-top:16px}
   .sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:42px auto 0;max-width:760px}
   .sel-card{border:1px solid var(--linha);border-radius:4px;padding:36px 16px;cursor:pointer;transition:.2s;
     display:flex;flex-direction:column;align-items:center;gap:18px;background:rgba(255,255,255,.012)}
-  .sel-card:hover{border-color:var(--gold);background:rgba(201,169,80,.06)}
+  .sel-card:hover{border-color:var(--gold);background:rgba(212,180,90,.06)}
   .sel-avatar{width:104px;height:104px;border-radius:50%;border:3px solid var(--gold);
     background:linear-gradient(135deg,var(--verde),var(--verde-esc));display:flex;align-items:center;justify-content:center;
     font-family:'Playfair Display',serif;font-size:40px;color:var(--gold);overflow:hidden;
     background-size:cover;background-position:center top;
-    box-shadow:0 0 0 1px rgba(201,169,80,.3), 0 0 24px rgba(201,169,80,.12)}
+    box-shadow:0 0 0 1px rgba(212,180,90,.3), 0 0 24px rgba(212,180,90,.12)}
   .sel-avatar.has-foto{background-image:var(--foto)}
   .sel-nome{font-family:'Barlow';font-weight:500;font-size:14px;letter-spacing:.24em;text-transform:uppercase;color:var(--creme)}
   .lg-err{color:#f0a193;font-size:13px;margin-top:14px;min-height:16px}
@@ -264,7 +264,7 @@
   .who-av:empty{display:none}
   .topbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;
     font-size:12px;color:var(--creme-suave);margin-bottom:8px}
-  #who{font-family:'DM Mono';letter-spacing:.05em;color:var(--gold-claro)}
+  #who{font-family:'Barlow';letter-spacing:.05em;color:var(--gold-claro)}
 
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
     background:var(--gold);color:var(--verde-fundo);font-weight:600;padding:12px 22px;
@@ -272,7 +272,7 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   .footnote{text-align:center;font-size:11px;color:var(--creme-suave);opacity:.5;
-    margin-top:30px;letter-spacing:.1em;font-family:'DM Mono'}
+    margin-top:30px;letter-spacing:.1em;font-family:'Barlow'}
 /* ===== Lista de pendências do formulário ===== */
 .form-erros{background:rgba(193,75,75,.12);border:1px solid rgba(214,120,120,.5);border-radius:12px;padding:14px 16px;color:#f3d9d2}
 .form-erros b{display:block;font-weight:700;margin-bottom:6px;color:#f0c6bc}
@@ -299,6 +299,26 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
   body.printing-etq #etq-print{display:flex!important;align-items:flex-start;justify-content:center}
   @page{size:80mm 60mm;margin:0}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CAMADA DE REFINAMENTO ESTÉTICO — unificação com Central de Metas
+   (somente visual; nenhuma alteração de funcionalidade)
+═══════════════════════════════════════════════════════════ */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:repeating-linear-gradient(45deg,rgba(212,180,90,.025) 0px,rgba(212,180,90,.025) 1px,transparent 1px,transparent 14px)}
+.wrap{position:relative;z-index:1}
+/* Cards em vidro, planos no repouso, elevam no hover (igual ao Metas) */
+.oc,.stat,.fab-card{background:rgba(255,255,255,.04);transition:all .22s ease}
+.oc:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.35)}
+.stat:hover,.fab-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.35);border-color:rgba(212,180,90,.4)}
+/* Brilho diagonal interno no card de encomenda (preserva a borda-status à esquerda) */
+.oc::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(212,180,90,.04) 0%,transparent 50%);opacity:0;transition:opacity .3s}
+.oc:hover::after{opacity:1}
+/* Header: gradiente verde com borda e sombra douradas (igual ao Metas) */
+header{background:linear-gradient(135deg,rgba(40,61,26,.95) 0%,rgba(30,46,20,1) 50%,rgba(36,58,22,.98) 100%);border-bottom:1px solid rgba(212,180,90,.2);box-shadow:0 2px 0 rgba(212,180,90,.12),0 8px 32px rgba(0,0,0,.3);border-radius:0 0 10px 10px}
+/* Glow sutil nos números grandes dourados */
+.stat .n{text-shadow:0 0 30px rgba(212,180,90,.12)}
+/* Garante que a textura de fundo NÃO seja impressa na etiqueta */
+@media print{body::before{display:none!important}}
 </style>
 </head>
 <body>
