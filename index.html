@@ -234,7 +234,7 @@
     display:flex;align-items:center;justify-content:center;padding:32px 18px;overflow:auto;
     background-image:radial-gradient(circle at 50% -5%, rgba(201,169,80,.10), transparent 55%),
                      radial-gradient(circle at 90% 110%, rgba(201,169,80,.05), transparent 45%)}
-  .login-inner{max-width:900px;width:100%;text-align:center;margin:auto}
+  .login-inner{max-width:900px;width:100%;text-align:center;margin:auto;zoom:.6}
   .sel-eyebrow{font-family:'DM Mono';font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-claro);margin-bottom:20px}
   .sel-title{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(40px,7vw,66px);color:var(--creme);line-height:1.04}
   .sel-title em{font-style:italic;color:var(--gold)}
@@ -350,21 +350,23 @@
 
       <div class="grid">
         <div class="photo-zone" id="photoZone">
-          <div id="photoPreview"><span>&#128247;&nbsp; Foto do modelo</span></div>
-          <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+          <div id="photoPreview"><span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span></div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+            <button type="button" class="btn sm" onclick="colarFoto()">📋 Colar foto</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoCam').click()">📷 Câmera</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoFile').click()">🖼 Anexar</button>
           </div>
+          <div style="font-size:11px;color:var(--creme-suave);opacity:.8;text-align:center;margin-top:8px">Copie a imagem (print/WhatsApp) e clique em <b>Colar</b> — ou use Ctrl+V / ⌘+V</div>
           <input type="file" id="fotoCam" accept="image/*" capture="environment" style="display:none">
           <input type="file" id="fotoFile" accept="image/*" style="display:none">
         </div>
 
         <div>
-          <label>Modelo do sapato</label>
+          <label>Modelo do sapato <span style="opacity:.5;text-transform:none">(opcional)</span></label>
           <input id="f-modelo" placeholder="Ex.: Oxford Wholecut Café">
         </div>
         <div class="full">
-          <label>Numeração</label>
+          <label>Numeração *</label>
           <input id="f-num" placeholder="Toque nos tamanhos ou digite">
           <div class="num-btns" id="numBtns"></div>
         </div>
@@ -377,11 +379,11 @@
           <input id="f-qtd" type="number" min="1" value="1">
         </div>
         <div>
-          <label>Cliente <span style="opacity:.5;text-transform:none">(opcional)</span></label>
+          <label>Cliente *</label>
           <input id="f-cliente" placeholder="Nome do cliente">
         </div>
         <div>
-          <label>Contato do cliente <span style="opacity:.5;text-transform:none">(WhatsApp)</span></label>
+          <label>Contato do cliente <span style="opacity:.5;text-transform:none">(WhatsApp · opcional)</span></label>
           <input id="f-contato" placeholder="Ex.: 62 9 9999-9999">
         </div>
         <div>
@@ -591,7 +593,7 @@ if (usaFirebase){
   try{
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
-    /* persistencia offline do Firestore REMOVIDA: causava disputa de IndexedDB com a sessao do Firebase Auth quando embarcado no hub (derrubava Edson/Yuri). Dashboard online nao precisa de cache offline. */
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     firebase.auth().onAuthStateChanged(user=>{
       if(user){
@@ -759,12 +761,15 @@ async function salvarEncomenda(){
   // se quem registra é vendedora, a encomenda sai sempre no nome dela
   const vend = ehGestor() ? document.getElementById("f-vend").value : currentUser.nome;
   const num = document.getElementById("f-num").value.trim();
-  if(!modelo){ toast("Informe o modelo do sapato"); return; }
+  const cliente = document.getElementById("f-cliente").value.trim();
+  const contato = document.getElementById("f-contato").value.trim();
   if(!vend){ toast("Selecione a vendedora"); return; }
+  if(!num){ toast("Informe a numeração"); return; }
+  if(!cliente){ toast("Informe o nome do cliente"); return; }
 
   // foto vai para o Firebase Storage (guarda só o link); em modo demo fica em base64
+  // a foto vai direto no documento (base64), já redimensionada — sem Firebase Storage, sem CORS
   let foto = fotoAtual;
-  if(fotoAtual && usaFirebase){ toast("Enviando foto…"); foto = await uploadFoto(fotoAtual); }
 
   const reg = {
     modelo,
@@ -772,8 +777,8 @@ async function salvarEncomenda(){
     qtd: parseInt(document.getElementById("f-qtd").value)||1,
     vendedora: vend,
     fabrica: "",
-    cliente: document.getElementById("f-cliente").value.trim(),
-    contato: document.getElementById("f-contato").value.trim(),
+    cliente: cliente,
+    contato: contato,
     pagamento: document.getElementById("f-pag").value,
     valorTotal: parseFloat(document.getElementById("f-vtotal").value)||0,
     valorPago: parseFloat(document.getElementById("f-vpago").value)||0,
@@ -797,7 +802,7 @@ function limparForm(){
   document.getElementById("f-vend").selectedIndex=0;
   document.getElementById("f-pag").selectedIndex=0;
   fotoAtual=null;
-  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo</span>`;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
   document.getElementById("fotoCam").value=""; document.getElementById("fotoFile").value="";
   syncNumBtns();
 }
@@ -822,6 +827,36 @@ function processarFoto(file){
 }
 document.getElementById("fotoCam").onchange = e=>processarFoto(e.target.files[0]);
 document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0]);
+
+/* colar foto do modelo: botão "Colar" (lê a área de transferência) */
+async function colarFoto(){
+  try{
+    if(navigator.clipboard && navigator.clipboard.read){
+      const itens = await navigator.clipboard.read();
+      for(const it of itens){
+        const tipo = it.types.find(t=>t.indexOf("image")===0);
+        if(tipo){ const blob = await it.getType(tipo); processarFoto(blob); toast("Foto colada ✔"); return; }
+      }
+      toast("Nenhuma imagem copiada. Copie a foto e clique em Colar (ou use Ctrl+V).");
+    } else {
+      toast("Cole com Ctrl+V (ou ⌘+V) com a aba Nova encomenda aberta.");
+    }
+  }catch(_){ toast("Não consegui ler a área de transferência. Use Ctrl+V."); }
+}
+/* atalho Ctrl/⌘+V: cola a imagem direto quando a aba Nova encomenda está ativa */
+document.addEventListener("paste", e=>{
+  const nova = document.getElementById("view-nova");
+  if(!nova || !nova.classList.contains("active")) return;
+  const t = e.target && e.target.tagName;
+  if(t==="INPUT" || t==="TEXTAREA" || t==="SELECT") {/* ainda permite colar imagem */}
+  const items = e.clipboardData && e.clipboardData.items; if(!items) return;
+  for(const it of items){
+    if(it.type && it.type.indexOf("image")===0){
+      const f=it.getAsFile();
+      if(f){ e.preventDefault(); processarFoto(f); toast("Foto colada ✔"); return; }
+    }
+  }
+});
 
 /* numeração em botões */
 const TAMANHOS=[37,38,39,40,41,42,43,44,45,46];
