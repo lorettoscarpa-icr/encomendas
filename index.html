@@ -348,6 +348,43 @@ input,select,textarea{border-radius:11px;padding:12px 14px;background:rgba(255,2
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(212,180,90,.14)}
 /* Header com base um pouco mais macia */
 header{border-radius:0 0 18px 18px}
+
+/* ═══════════════════════════════════════════════════════════
+   UPLIFT 2 — acabamento premium (tipografia display, KPIs, detalhes)
+═══════════════════════════════════════════════════════════ */
+/* Nome do modelo em Cormorant — o serif de display do projeto (igual ao entregas) */
+.oc-body .modelo{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.01em;color:var(--creme)}
+/* KPIs elegantes: número grande em serif display (mantém o glow dourado) */
+.stat{padding:16px 18px}
+.stat .n{font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:600;line-height:1}
+.stat .l{margin-top:4px}
+/* Botões-ícone arredondados (faltou no 1º passe) */
+.icon-btn{border-radius:10px}
+/* Badges em pílula plena */
+.badge{border-radius:999px;padding:4px 11px}
+/* Imagem do card com leve gradiente inferior p/ profundidade e separação do texto */
+.oc-img{position:relative}
+.oc-img::after{content:'';position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(to top,rgba(20,30,12,.5),transparent);pointer-events:none}
+/* Títulos de painel com leve aperto de tracking (mais editorial) */
+.panel h2{letter-spacing:-.01em}
+/* Marca: títulos um pouco mais refinados */
+.brand h1{letter-spacing:-.01em}
+/* Acabamentos premium globais */
+::selection{background:rgba(212,180,90,.28);color:#fff}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,180,90,.22);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(212,180,90,.42);background-clip:content-box}
+
+/* ═══════════════════════════════════════════════════════════
+   CORREÇÃO DE TOM — superfícies sólidas estavam claras demais
+   (usavam --verde #46672f, que é cor de acento, não de fundo)
+═══════════════════════════════════════════════════════════ */
+/* Painel de formulário: vidro, como os demais cards */
+.panel{background:rgba(255,255,255,.04)}
+/* Modais (não podem ser translúcidos): verde escuro elevado, dentro da paleta */
+.modal-card,.login-modal{background:linear-gradient(160deg,#324626 0%,#283d1a 100%)}
+.login-modal-avatar{background:#283d1a}
 </style>
 </head>
 <body>
