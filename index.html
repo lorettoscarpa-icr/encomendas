@@ -319,6 +319,35 @@ header{background:linear-gradient(135deg,rgba(40,61,26,.95) 0%,rgba(30,46,20,1) 
 .stat .n{text-shadow:0 0 30px rgba(212,180,90,.12)}
 /* Garante que a textura de fundo NÃO seja impressa na etiqueta */
 @media print{body::before{display:none!important}}
+
+/* ═══════════════════════════════════════════════════════════
+   UPLIFT DE DESIGN — alinhamento à linguagem do projeto
+   (cantos macios, abas em pílula, controles refinados — só visual)
+═══════════════════════════════════════════════════════════ */
+/* Cantos macios, coerentes com posvenda / entregas */
+.panel{border-radius:16px;padding:26px}
+.oc{border-radius:16px}
+.sel-card{border-radius:16px}
+.modal-card{border-radius:18px}
+.stat{border-radius:14px}
+.fab-card{border-radius:14px}
+.photo-zone{border-radius:14px}
+.photo-zone img{border-radius:11px}
+/* Abas em pílula (como os chips do restante do projeto) */
+.tabs{gap:9px}
+.tab{border-radius:999px;padding:10px 20px;font-size:13px;letter-spacing:.04em}
+.tab:hover{background:rgba(212,180,90,.08)}
+.tab.active{box-shadow:0 6px 18px -8px rgba(212,180,90,.55)}
+/* Botões arredondados com leve elevação no hover */
+.btn{border-radius:11px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px -12px rgba(212,180,90,.7)}
+.btn.ghost:hover{box-shadow:none}
+.num-btn{border-radius:999px;padding:6px 14px}
+/* Campos: cantos macios + vidro + anel de foco dourado (assinatura do projeto) */
+input,select,textarea{border-radius:11px;padding:12px 14px;background:rgba(255,255,255,.05)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(212,180,90,.14)}
+/* Header com base um pouco mais macia */
+header{border-radius:0 0 18px 18px}
 </style>
 </head>
 <body>
