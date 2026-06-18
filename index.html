@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=Barlow:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase (compat 10.7.0) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -19,30 +19,30 @@
 
 <style>
   :root{
-    --verde:#4a5c2a;
-    --verde-esc:#3a4720;
-    --verde-fundo:#2f3a1a;
-    --gold:#c9a950;
-    --gold-claro:#e0c87f;
-    --creme:#f4efe3;
-    --creme-suave:#d8d0bd;
-    --vermelho:#b3402f;
+    /* Paleta unificada Loretto Scarpa — alinhada à Central de Metas (modo escuro) */
+    --verde:#46672f;
+    --verde-esc:#1f3013;
+    --verde-fundo:#283d1a;
+    --gold:#d4b45a;
+    --gold-claro:#ebd48a;
+    --creme:#f8f3e6;
+    --creme-suave:rgba(248,243,230,.6);
+    --vermelho:#c0504a;
     --vermelho-bg:#5a2018;
     --ambar:#d98c2b;
     --ambar-bg:#4f3915;
-    --ok:#8ba35a;
+    --ok:#5cb85c;
     --ok-bg:#3c4a22;
-    --linha:rgba(201,169,80,.22);
+    --linha:rgba(212,180,90,.30);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:'Barlow',sans-serif;
-    background:var(--verde-fundo);
-    background-image:radial-gradient(circle at 18% -10%, rgba(201,169,80,.10), transparent 45%),
-                     radial-gradient(circle at 90% 0%, rgba(201,169,80,.06), transparent 40%);
+    background:radial-gradient(ellipse 120% 60% at 50% 100%,rgba(212,180,90,.06) 0%,transparent 60%),radial-gradient(ellipse 80% 40% at 50% 0%,rgba(74,99,48,.4) 0%,transparent 50%),var(--verde-fundo);
     color:var(--creme);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
+    font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1;
   }
   .wrap{max-width:1180px;margin:0 auto;padding:0 18px 90px}
 
@@ -60,7 +60,7 @@
     letter-spacing:.02em;line-height:1;
   }
   .brand .sub{
-    font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.35em;
+    font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:.35em;
     text-transform:uppercase;color:var(--gold-claro);opacity:.85;margin-top:6px;
   }
 
@@ -125,7 +125,7 @@
   }
   .btn:hover{background:var(--gold-claro);border-color:var(--gold-claro)}
   .btn.ghost{background:transparent;color:var(--gold-claro)}
-  .btn.ghost:hover{background:rgba(201,169,80,.12)}
+  .btn.ghost:hover{background:rgba(212,180,90,.12)}
   .btn.sm{padding:8px 14px;font-size:12px}
   .btn.danger{border-color:var(--vermelho);background:transparent;color:#e88}
   .btn.danger:hover{background:rgba(179,64,47,.18)}
@@ -134,7 +134,7 @@
   .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
   .stat{flex:1;min-width:120px;background:var(--verde);border:1px solid var(--linha);
     border-radius:4px;padding:14px 16px}
-  .stat .n{font-family:'DM Mono';font-size:26px;font-weight:500;color:var(--gold-claro)}
+  .stat .n{font-family:'Barlow';font-size:26px;font-weight:500;color:var(--gold-claro)}
   .stat .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--creme-suave);margin-top:2px}
   .stat.alert .n{color:#f0a193}
 
@@ -149,7 +149,7 @@
     background:var(--verde-esc);padding:14px 18px;border-bottom:1px solid var(--linha)
   }
   .fab-head h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--creme)}
-  .fab-head .count{font-family:'DM Mono';font-size:12px;color:var(--gold-claro);
+  .fab-head .count{font-family:'Barlow';font-size:12px;color:var(--gold-claro);
     border:1px solid var(--linha);padding:2px 9px;border-radius:20px}
   .fab-head .acts{display:flex;gap:8px;flex-wrap:wrap}
   .fab-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
@@ -170,7 +170,7 @@
     letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
   .oc-obs{font-size:13px;color:var(--creme-suave);font-style:italic;border-top:1px solid var(--linha);padding-top:7px}
   .badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .badge{font-family:'DM Mono';font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.03em}
+  .badge{font-family:'Barlow';font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.03em}
   .b-dias{background:var(--ok-bg);color:#cfe0a3}
   .b-dias.atraso{background:var(--vermelho-bg);color:#f3b4a8}
   .b-dias.atencao{background:var(--ambar-bg);color:#f0cd92}
@@ -194,7 +194,7 @@
   .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
   .num-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .busca-box{width:100%;margin-top:14px}
-  .num-btn{font-family:'DM Mono';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
+  .num-btn{font-family:'Barlow';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
     background:var(--verde-esc);color:var(--creme-suave);border-radius:3px;cursor:pointer;transition:.12s}
   .num-btn:hover{border-color:var(--gold)}
   .num-btn.on{background:var(--gold);color:var(--verde-fundo);border-color:var(--gold);font-weight:600}
@@ -218,7 +218,7 @@
   .fab-card{background:var(--verde);border:1px solid var(--linha);border-radius:4px;padding:16px 18px}
   .fab-card h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--creme);margin-bottom:10px}
   .fc-row{display:flex;justify-content:space-between;font-size:13px;color:var(--creme-suave);padding:4px 0}
-  .fc-row b{color:var(--gold-claro);font-family:'DM Mono'}
+  .fc-row b{color:var(--gold-claro);font-family:'Barlow'}
   .bar{height:8px;background:var(--verde-esc);border-radius:5px;overflow:hidden;margin:8px 0;border:1px solid var(--linha)}
   .bar-fill{height:100%;background:var(--gold);border-radius:5px}
 
@@ -226,28 +226,28 @@
   .banner{background:var(--ambar-bg);border:1px solid var(--ambar);color:#f3d8a8;
     padding:11px 16px;border-radius:4px;font-size:13px;margin-top:14px;display:none}
   .banner.show{display:block}
-  .banner code{font-family:'DM Mono';background:rgba(0,0,0,.25);padding:1px 6px;border-radius:3px}
+  .banner code{font-family:'Barlow';background:rgba(0,0,0,.25);padding:1px 6px;border-radius:3px}
 
   /* TOAST */
   /* LOGIN */
   #login{position:fixed;inset:0;background:var(--verde-fundo);z-index:200;
     display:flex;align-items:center;justify-content:center;padding:32px 18px;overflow:auto;
-    background-image:radial-gradient(circle at 50% -5%, rgba(201,169,80,.10), transparent 55%),
-                     radial-gradient(circle at 90% 110%, rgba(201,169,80,.05), transparent 45%)}
+    background-image:radial-gradient(circle at 50% -5%, rgba(212,180,90,.10), transparent 55%),
+                     radial-gradient(circle at 90% 110%, rgba(212,180,90,.05), transparent 45%)}
   .login-inner{max-width:900px;width:100%;text-align:center;margin:auto;zoom:.6}
-  .sel-eyebrow{font-family:'DM Mono';font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-claro);margin-bottom:20px}
+  .sel-eyebrow{font-family:'Barlow';font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:var(--gold-claro);margin-bottom:20px}
   .sel-title{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(40px,7vw,66px);color:var(--creme);line-height:1.04}
   .sel-title em{font-style:italic;color:var(--gold)}
   .sel-sub{font-size:clamp(14px,2.1vw,17px);color:var(--creme-suave);margin-top:16px}
   .sel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:42px auto 0;max-width:760px}
   .sel-card{border:1px solid var(--linha);border-radius:4px;padding:36px 16px;cursor:pointer;transition:.2s;
     display:flex;flex-direction:column;align-items:center;gap:18px;background:rgba(255,255,255,.012)}
-  .sel-card:hover{border-color:var(--gold);background:rgba(201,169,80,.06)}
+  .sel-card:hover{border-color:var(--gold);background:rgba(212,180,90,.06)}
   .sel-avatar{width:104px;height:104px;border-radius:50%;border:3px solid var(--gold);
     background:linear-gradient(135deg,var(--verde),var(--verde-esc));display:flex;align-items:center;justify-content:center;
     font-family:'Playfair Display',serif;font-size:40px;color:var(--gold);overflow:hidden;
     background-size:cover;background-position:center top;
-    box-shadow:0 0 0 1px rgba(201,169,80,.3), 0 0 24px rgba(201,169,80,.12)}
+    box-shadow:0 0 0 1px rgba(212,180,90,.3), 0 0 24px rgba(212,180,90,.12)}
   .sel-avatar.has-foto{background-image:var(--foto)}
   .sel-nome{font-family:'Barlow';font-weight:500;font-size:14px;letter-spacing:.24em;text-transform:uppercase;color:var(--creme)}
   .lg-err{color:#f0a193;font-size:13px;margin-top:14px;min-height:16px}
@@ -264,7 +264,7 @@
   .who-av:empty{display:none}
   .topbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;
     font-size:12px;color:var(--creme-suave);margin-bottom:8px}
-  #who{font-family:'DM Mono';letter-spacing:.05em;color:var(--gold-claro)}
+  #who{font-family:'Barlow';letter-spacing:.05em;color:var(--gold-claro)}
 
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
     background:var(--gold);color:var(--verde-fundo);font-weight:600;padding:12px 22px;
@@ -272,25 +272,13 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   .footnote{text-align:center;font-size:11px;color:var(--creme-suave);opacity:.5;
-    margin-top:30px;letter-spacing:.1em;font-family:'DM Mono'}
+    margin-top:30px;letter-spacing:.1em;font-family:'Barlow'}
 /* ===== Lista de pendências do formulário ===== */
 .form-erros{background:rgba(193,75,75,.12);border:1px solid rgba(214,120,120,.5);border-radius:12px;padding:14px 16px;color:#f3d9d2}
 .form-erros b{display:block;font-weight:700;margin-bottom:6px;color:#f0c6bc}
 .form-erros ul{margin:0;padding-left:18px}
 .form-erros li{margin:3px 0;font-size:14px}
 input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(214,120,120,.25)}
-/* ===== Várias fotos ===== */
-.fotos-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.fthumb{position:relative;width:92px;height:92px;border-radius:4px;overflow:hidden;border:1px solid var(--linha)}
-.fthumb img{width:100%;height:100%;object-fit:cover}
-.fdel{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(20,24,12,.78);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.fcount{width:100%;text-align:center;font-family:'DM Mono';font-size:10px;letter-spacing:.06em;color:var(--creme-suave);opacity:.8;margin-top:9px}
-.oc-img{position:relative}
-.img-mais{position:absolute;right:8px;bottom:8px;background:rgba(20,24,12,.74);color:var(--gold-claro);font-family:'DM Mono';font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--linha);pointer-events:none}
-.lightbox{position:fixed;inset:0;background:rgba(12,16,8,.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
-.lb-inner{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;max-width:1000px}
-.lb-inner img{max-width:100%;max-height:82vh;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
-.lb-x{position:fixed;top:16px;right:18px;width:42px;height:42px;border-radius:50%;border:1px solid var(--linha);background:rgba(20,24,12,.7);color:#fff;font-size:24px;cursor:pointer}
 
 /* ===== Etiqueta de encomenda (colar no sapato) ===== */
 .etq-print{display:none}
@@ -311,6 +299,96 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
   body.printing-etq #etq-print{display:flex!important;align-items:flex-start;justify-content:center}
   @page{size:80mm 60mm;margin:0}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CAMADA DE REFINAMENTO ESTÉTICO — unificação com Central de Metas
+   (somente visual; nenhuma alteração de funcionalidade)
+═══════════════════════════════════════════════════════════ */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:repeating-linear-gradient(45deg,rgba(212,180,90,.025) 0px,rgba(212,180,90,.025) 1px,transparent 1px,transparent 14px)}
+.wrap{position:relative;z-index:1}
+/* Cards em vidro, planos no repouso, elevam no hover (igual ao Metas) */
+.oc,.stat,.fab-card{background:rgba(255,255,255,.04);transition:all .22s ease}
+.oc:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.35)}
+.stat:hover,.fab-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.35);border-color:rgba(212,180,90,.4)}
+/* Brilho diagonal interno no card de encomenda (preserva a borda-status à esquerda) */
+.oc::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(212,180,90,.04) 0%,transparent 50%);opacity:0;transition:opacity .3s}
+.oc:hover::after{opacity:1}
+/* Header: gradiente verde com borda e sombra douradas (igual ao Metas) */
+header{background:linear-gradient(135deg,rgba(40,61,26,.95) 0%,rgba(30,46,20,1) 50%,rgba(36,58,22,.98) 100%);border-bottom:1px solid rgba(212,180,90,.2);box-shadow:0 2px 0 rgba(212,180,90,.12),0 8px 32px rgba(0,0,0,.3);border-radius:0 0 10px 10px}
+/* Glow sutil nos números grandes dourados */
+.stat .n{text-shadow:0 0 30px rgba(212,180,90,.12)}
+/* Garante que a textura de fundo NÃO seja impressa na etiqueta */
+@media print{body::before{display:none!important}}
+
+/* ═══════════════════════════════════════════════════════════
+   UPLIFT DE DESIGN — alinhamento à linguagem do projeto
+   (cantos macios, abas em pílula, controles refinados — só visual)
+═══════════════════════════════════════════════════════════ */
+/* Cantos macios, coerentes com posvenda / entregas */
+.panel{border-radius:16px;padding:26px}
+.oc{border-radius:16px}
+.sel-card{border-radius:16px}
+.modal-card{border-radius:18px}
+.stat{border-radius:14px}
+.fab-card{border-radius:14px}
+.photo-zone{border-radius:14px}
+.photo-zone img{border-radius:11px}
+/* Abas em pílula (como os chips do restante do projeto) */
+.tabs{gap:9px}
+.tab{border-radius:999px;padding:10px 20px;font-size:13px;letter-spacing:.04em}
+.tab:hover{background:rgba(212,180,90,.08)}
+.tab.active{box-shadow:0 6px 18px -8px rgba(212,180,90,.55)}
+/* Botões arredondados com leve elevação no hover */
+.btn{border-radius:11px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px -12px rgba(212,180,90,.7)}
+.btn.ghost:hover{box-shadow:none}
+.num-btn{border-radius:999px;padding:6px 14px}
+/* Campos: cantos macios + vidro + anel de foco dourado (assinatura do projeto) */
+input,select,textarea{border-radius:11px;padding:12px 14px;background:rgba(255,255,255,.05)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(212,180,90,.14)}
+/* Header com base um pouco mais macia */
+header{border-radius:0 0 18px 18px}
+
+/* ═══════════════════════════════════════════════════════════
+   UPLIFT 2 — acabamento premium (tipografia display, KPIs, detalhes)
+═══════════════════════════════════════════════════════════ */
+/* Nome do modelo em Cormorant — o serif de display do projeto (igual ao entregas) */
+.oc-body .modelo{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.01em;color:var(--creme)}
+/* KPIs elegantes: número grande em serif display (mantém o glow dourado) */
+.stat{padding:16px 18px}
+.stat .n{font-family:'Cormorant Garamond',serif;font-size:33px;font-weight:600;line-height:1}
+.stat .l{margin-top:4px}
+/* Botões-ícone arredondados (faltou no 1º passe) */
+.icon-btn{border-radius:10px}
+/* Badges em pílula plena */
+.badge{border-radius:999px;padding:4px 11px}
+/* Imagem do card com leve gradiente inferior p/ profundidade e separação do texto */
+.oc-img{position:relative}
+.oc-img::after{content:'';position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(to top,rgba(20,30,12,.5),transparent);pointer-events:none}
+/* Títulos de painel com leve aperto de tracking (mais editorial) */
+.panel h2{letter-spacing:-.01em}
+/* Marca: títulos um pouco mais refinados */
+.brand h1{letter-spacing:-.01em}
+/* Acabamentos premium globais */
+::selection{background:rgba(212,180,90,.28);color:#fff}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,180,90,.22);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(212,180,90,.42);background-clip:content-box}
+
+/* ═══════════════════════════════════════════════════════════
+   CORREÇÃO DE TOM — superfícies sólidas estavam claras demais
+   (usavam --verde #46672f, que é cor de acento, não de fundo)
+═══════════════════════════════════════════════════════════ */
+/* Painel de formulário: vidro, como os demais cards */
+.panel{background:rgba(255,255,255,.04)}
+/* Modais (não podem ser translúcidos): verde escuro elevado, dentro da paleta */
+.modal-card,.login-modal{background:linear-gradient(160deg,#324626 0%,#283d1a 100%)}
+.login-modal-avatar{background:#283d1a}
+/* Botões de WhatsApp — verde padrão (estilo do painel de Entregas) */
+.btn.wa{background:linear-gradient(135deg,#7fae6b,#5f9152)!important;color:#16210f!important;border:1px solid #5f9152!important;box-shadow:0 8px 20px -9px rgba(127,174,107,.5)}
+.btn.wa:hover{filter:brightness(1.06)}
+.btn.wa svg{fill:#16210f;vertical-align:-2px}
 </style>
 </head>
 <body>
@@ -369,7 +447,7 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
 
       <div class="grid">
         <div class="photo-zone" id="photoZone">
-          <div id="photoPreview"><span>&#128247;&nbsp; Fotos do modelo <span style="opacity:.5;text-transform:none">(opcional · pode adicionar várias)</span></span></div>
+          <div id="photoPreview"><span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span></div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
             <button type="button" class="btn sm" onclick="colarFoto()">📋 Colar foto</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoCam').click()">📷 Câmera</button>
@@ -377,7 +455,7 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
           </div>
           <div style="font-size:11px;color:var(--creme-suave);opacity:.8;text-align:center;margin-top:8px">Copie a imagem (print/WhatsApp) e clique em <b>Colar</b> — ou use Ctrl+V / ⌘+V</div>
           <input type="file" id="fotoCam" accept="image/*" capture="environment" style="display:none">
-          <input type="file" id="fotoFile" accept="image/*" multiple style="display:none">
+          <input type="file" id="fotoFile" accept="image/*" style="display:none">
         </div>
 
         <div>
@@ -581,7 +659,7 @@ function ehGestor(u){ u=u||currentUser; return !!u && (u.papel==="gestor" || u.p
 let usaFirebase = FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.includes("COLE_AQUI");
 let db = null;
 let encomendas = [];
-let fotosAtual = []; // base64 das fotos em edição (várias)
+let fotoAtual = null; // base64 da foto em edição
 let currentUser = null;
 let selecionados = new Set();
 const LEMBRETE_DIAS = 3;   // dias após chegada para sugerir lembrete de retirada
@@ -824,9 +902,8 @@ async function salvarEncomenda(){
   }
   box.style.display="none";
 
-  // fotos vão direto no documento (base64), já redimensionadas — sem Firebase Storage, sem CORS
-  const fotos = fotosAtual.slice();
-  if(fotos.reduce((a,b)=>a+b.length,0) > 1000000){ toast("As fotos somam mais de ~1 MB (limite por encomenda). Remova alguma."); return; }
+  // a foto vai direto no documento (base64), já redimensionada — sem Firebase Storage, sem CORS
+  let foto = fotoAtual;
 
   const pagamentos = vpago>0 ? [{data:Date.now(), valor:vpago}] : [];
   const reg = {
@@ -842,8 +919,7 @@ async function salvarEncomenda(){
     valorPago: vpago,
     pagamentos: pagamentos,
     obs: document.getElementById("f-obs").value.trim(),
-    fotos: fotos,
-    foto: fotos[0]||null,
+    foto: foto,
     status: "aberta",
     dataCriacao: Date.now()
   };
@@ -864,8 +940,8 @@ function limparForm(){
   onPagChange();
   ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const box=document.getElementById("form-erros"); if(box){ box.style.display="none"; box.innerHTML=""; }
-  fotosAtual=[];
-  renderFotosPreview();
+  fotoAtual=null;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
   document.getElementById("fotoCam").value=""; document.getElementById("fotoFile").value="";
   syncNumBtns();
 }
@@ -877,26 +953,19 @@ function processarFoto(file){
   r.onload=ev=>{
     const img=new Image();
     img.onload=()=>{
-      const max=820; let w=img.width,h=img.height;
+      const max=700; let w=img.width,h=img.height;
       if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
       const c=document.createElement("canvas");c.width=w;c.height=h;
       c.getContext("2d").drawImage(img,0,0,w,h);
-      fotosAtual.push(c.toDataURL("image/jpeg",0.72));
-      renderFotosPreview();
+      fotoAtual=c.toDataURL("image/jpeg",0.7);
+      document.getElementById("photoPreview").innerHTML=`<img src="${fotoAtual}" style="max-height:170px;border-radius:3px">`;
     };
     img.src=ev.target.result;
   };
   r.readAsDataURL(file);
 }
-function renderFotosPreview(){
-  const box=document.getElementById("photoPreview"); if(!box) return;
-  if(!fotosAtual.length){ box.classList.remove("has"); box.innerHTML=`<span>&#128247;&nbsp; Fotos do modelo <span style="opacity:.5;text-transform:none">(opcional · pode adicionar várias)</span></span>`; return; }
-  box.classList.add("has");
-  box.innerHTML=`<div class="fotos-grid">`+fotosAtual.map((ft,i)=>`<div class="fthumb"><img src="${ft}"><button type="button" class="fdel" title="Remover" onclick="removerFoto(${i})">&times;</button></div>`).join("")+`</div><div class="fcount">${fotosAtual.length} foto${fotosAtual.length>1?'s':''} — toque na câmera/anexar/colar para adicionar mais</div>`;
-}
-function removerFoto(i){ fotosAtual.splice(i,1); renderFotosPreview(); }
-document.getElementById("fotoCam").onchange = e=>{ Array.from(e.target.files).forEach(processarFoto); e.target.value=""; };
-document.getElementById("fotoFile").onchange = e=>{ Array.from(e.target.files).forEach(processarFoto); e.target.value=""; };
+document.getElementById("fotoCam").onchange = e=>processarFoto(e.target.files[0]);
+document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0]);
 
 /* colar foto do modelo: botão "Colar" (lê a área de transferência) */
 async function colarFoto(){
@@ -1023,11 +1092,11 @@ function renderGestor(){
     const naoAlocada = fab==="";
     const atr = itens.filter(e=>e.status!=="recebida"&&diasDe(e)>PRAZO_DIAS).length;
     const titulo = naoAlocada ? "⚠ A alocar fábrica" : fab;
-    const cobrar = (!naoAlocada && atr>0) ? `<button class="btn sm" style="background:var(--vermelho);border-color:var(--vermelho);color:#fff" onclick="cobrarFabrica('${esc(fab)}')">⏰ Cobrar atrasados</button>` : "";
+    const cobrar = (!naoAlocada && atr>0) ? `<button class="btn sm wa" onclick="cobrarFabrica('${esc(fab)}')">${WA_ICON} Cobrar atrasados</button>` : "";
     const acts = naoAlocada ? `<span style="font-size:12px;color:var(--creme-suave);opacity:.8">Defina a fábrica em cada card abaixo</span>` : `
           ${cobrar}
           <button class="btn ghost sm" onclick="copiarWhats('${esc(fab)}')">📋 Copiar p/ WhatsApp</button>
-          <button class="btn ghost sm" onclick="abrirWhats('${esc(fab)}')">${WA_ICON}Abrir WhatsApp</button>
+          <button class="btn sm wa" onclick="abrirWhats('${esc(fab)}')">${WA_ICON} Abrir WhatsApp</button>
           <button class="btn sm" onclick="gerarPDF('${esc(fab)}')">📄 Gerar PDF</button>`;
     html += `<div class="fab-group${naoAlocada?' nao-alocada':''}">
       <div class="fab-head">
@@ -1053,7 +1122,7 @@ function card(e){
   const fabOpts = FABRICAS.map(f=>`<option ${e.fabrica===f.nome?'selected':''}>${f.nome}</option>`).join("");
   return `<div class="oc ${sv.cls}">
     <label class="oc-check"><input type="checkbox" onclick="toggleSel('${e.id}',this.checked)" ${selecionados.has(e.id)?'checked':''}></label>
-    <div class="oc-img">${imgCover(e)}</div>
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
     <div class="oc-body">
       <div class="modelo">${e.modelo||'—'}</div>
       <div class="badges">
@@ -1131,7 +1200,7 @@ function cardRecebida(e){
   const aguardando = diasRet>=LEMBRETE_DIAS;
   const seloEspera = aguardando ? `<span class="badge b-parcial">Aguardando retirada há ${diasRet}d</span>` : "";
   return `<div class="oc st-recebida ${aguardando?'st-atencao':''}" style="opacity:1">
-    <div class="oc-img">${imgCover(e)}</div>
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
     <div class="oc-body">
       <div class="modelo">${e.modelo||'—'}</div>
       <div class="badges">${selo}${seloEspera}<span class="badge b-vend">${e.vendedora||''}</span></div>
@@ -1143,15 +1212,15 @@ function cardRecebida(e){
     <div class="oc-foot">
       <button class="icon-btn" title="Imprimir etiqueta p/ colar no sapato" onclick="etiquetaEncomenda('${e.id}')">&#127991;</button>
       ${ehVend
-        ? `<button class="btn sm" style="flex:1;min-width:130px" onclick="avisarCliente('${e.id}')">${WA_ICON}Avisar cliente</button>
-           ${aguardando?`<button class="btn ghost sm" title="Lembrar cliente" onclick="avisarLembrete('${e.id}')">🔔 Lembrar</button>`:''}
+        ? `<button class="btn sm wa" style="flex:1;min-width:130px" onclick="avisarCliente('${e.id}')">${WA_ICON} Avisar cliente</button>
+           ${aguardando?`<button class="btn sm wa" title="Lembrar cliente" onclick="avisarLembrete('${e.id}')">${WA_ICON} Lembrar Cliente</button>`:''}
            <button class="icon-btn" title="Copiar mensagem" onclick="copiarMsgCliente('${e.id}')">📋</button>
            <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
            <button class="btn ghost sm" onclick="finalizarPedido('${e.id}')">✓ Finalizar</button>`
-        : `<button class="btn sm" style="flex:1;min-width:130px" onclick="avisarVendedora('${e.id}')">${WA_ICON}Avisar vendedora</button>
+        : `<button class="btn sm wa" style="flex:1;min-width:130px" onclick="avisarVendedora('${e.id}')">${WA_ICON} Avisar vendedora</button>
            <button class="icon-btn" title="Copiar mensagem p/ vendedora" onclick="copiarMsgVendedora('${e.id}')">📋</button>
            <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
-           <button class="btn ghost sm" title="Marquei a chegada por engano" onclick="voltarAndamento('${e.id}')">↩ Voltar p/ andamento</button>`}
+           <button class="icon-btn" title="Voltar para Em andamento (marquei por engano)" onclick="voltarAndamento('${e.id}')">↩</button>`}
     </div>
   </div>`;
 }
@@ -1175,13 +1244,6 @@ function msgVendedora(e){
   else if(pago>0) pag = `Pagamento *parcial*: já recebido ${fmtMoeda(pago)}` + (e.valorTotal>0 ? `, ainda falta *${fmtMoeda(saldo)}*.` : ".");
   else pag = "Pagamento: *em aberto* (nada pago ainda)." + (e.valorTotal>0 ? ` Valor total ${fmtMoeda(e.valorTotal)}.` : "");
   return `Olá, ${e.vendedora}!\n\nO seu sapato da encomenda *${modelo}*${cli} acabou de chegar na loja.\n\n${pag}\n\nJá pode avisar o cliente para a retirada.`;
-}
-function avisarGestor(id){
-  const e = encomendas.find(x=>x.id===id); if(!e) return;
-  const modelo = [e.modelo, e.numeracao?`(Numeração ${e.numeracao})`:""].filter(Boolean).join(" ") || "encomenda";
-  const cli = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "—";
-  const msg = `Olá! Encomenda registrada e pronta para pedir na fábrica:\n\n*${modelo}*${e.qtd>1?` · ${e.qtd} pares`:""}\nCliente: ${cli}\nVendedora: ${e.vendedora||"—"}\n\nConsegue fazer o pedido na fábrica?`;
-  window.open(`https://wa.me/5562983129321?text=${encodeURIComponent(msg)}`, "_blank");
 }
 function avisarVendedora(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
@@ -1265,7 +1327,7 @@ function cardAndamento(e){
   const ehVend = currentUser && currentUser.papel==="vendedora";
   const estagio = e.status==="aberta" ? "Aguardando envio" : "Enviada à fábrica";
   return `<div class="oc ${sv.cls}">
-    <div class="oc-img">${imgCover(e)}</div>
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
     <div class="oc-body">
       <div class="modelo">${e.modelo||'—'}</div>
       <div class="badges">
@@ -1279,18 +1341,16 @@ function cardAndamento(e){
       ${e.obs?`<div class="oc-obs">“${e.obs}”</div>`:''}
     </div>
     <div class="oc-foot">
-      ${(ehVend && e.status==="aberta")?`<button class="btn sm" style="flex:1;min-width:140px" title="Avisar o gestor para fazer o pedido na fábrica" onclick="avisarGestor('${e.id}')">${WA_ICON}Avisar gestor (pedir na fábrica)</button>`:''}
       <button class="icon-btn" title="Editar" onclick="editarEncomenda('${e.id}')">✏️ Editar</button>
       <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰 Pagamento</button>
       <button class="icon-btn" title="Duplicar" onclick="duplicarEncomenda('${e.id}')">⧉ Duplicar</button>
-      ${!ehVend?`<button class="btn danger sm" title="Cancelar (cliente desistiu / reembolso)" onclick="cancelarEncomenda('${e.id}')">✕ Cancelar</button>`:''}
     </div>
   </div>`;
 }
 
 /* ==================== FINALIZADAS ==================== */
 function renderFinalizadas(){
-  let itens = encomendas.filter(e=>e.status==="finalizada" || e.status==="cancelada");
+  let itens = encomendas.filter(e=>e.status==="finalizada");
   const ehVend = currentUser && currentUser.papel==="vendedora";
   if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
   itens = itens.filter(e=>matchBusca(e, valBusca("busca-fin")));
@@ -1301,31 +1361,22 @@ function renderFinalizadas(){
       ${ehVend?"Você ainda não tem encomendas finalizadas.":"Nenhuma encomenda finalizada ainda."}</div>`;
     return;
   }
-  const nFin=itens.filter(e=>e.status==="finalizada").length, nCan=itens.filter(e=>e.status==="cancelada").length;
-  cont.innerHTML = `<div class="stats"><div class="stat"><div class="n">${nFin}</div><div class="l">Finalizadas</div></div><div class="stat"><div class="n">${nCan}</div><div class="l">Canceladas</div></div></div>
+  cont.innerHTML = `<div class="stats"><div class="stat"><div class="n">${itens.length}</div><div class="l">Finalizadas</div></div></div>
     <div class="grid-cards">${itens.map(cardFinalizada).join("")}</div>`;
 }
 function cardFinalizada(e){
-  const cancelada = e.status==="cancelada";
-  const badge = cancelada
-    ? `<span class="badge" style="background:var(--vermelho-bg);color:#f0a193">✕ Cancelada</span>`
-    : `<span class="badge b-pago">✓ Finalizada</span>`;
   return `<div class="oc st-recebida" style="opacity:.85">
-    <div class="oc-img">${imgCover(e)}</div>
+    <div class="oc-img">${e.foto?`<img src="${e.foto}">`:`<span class="ph">SEM FOTO</span>`}</div>
     <div class="oc-body">
       <div class="modelo">${e.modelo||'—'}</div>
-      <div class="badges">${badge}<span class="badge b-vend">${e.vendedora||''}</span></div>
+      <div class="badges"><span class="badge b-pago">✓ Finalizada</span><span class="badge b-vend">${e.vendedora||''}</span></div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
-      ${cancelada
-        ? `<div class="oc-row"><b>Cancelada</b><span>${fmtData(e.dataCancelada||e.dataCriacao)}</span></div>`+(e.motivoCancelamento?`<div class="oc-obs">“${e.motivoCancelamento}”</div>`:'')
-        : (e.formaEntrega?`<div class="oc-row"><b>${e.formaEntrega==='entrega'?'Entregue':'Retirada'}</b><span>${fmtData(e.dataRetirada||e.dataFinalizada)}</span></div>`:`<div class="oc-row"><b>Concluída</b><span>${fmtData(e.dataFinalizada||e.dataCriacao)}</span></div>`)}
+      ${e.formaEntrega?`<div class="oc-row"><b>${e.formaEntrega==='entrega'?'Entregue':'Retirada'}</b><span>${fmtData(e.dataRetirada||e.dataFinalizada)}</span></div>`:`<div class="oc-row"><b>Concluída</b><span>${fmtData(e.dataFinalizada||e.dataCriacao)}</span></div>`}
     </div>
     <div class="oc-foot">
-      ${cancelada
-        ? `<button class="btn ghost sm" title="Reabrir (voltar para Em andamento)" onclick="voltarAndamento('${e.id}')">↩ Reabrir</button>`
-        : `<button class="btn ghost sm" title="Imprimir etiqueta p/ colar no sapato" onclick="etiquetaEncomenda('${e.id}')">&#127991; Etiqueta</button>
-           <button class="icon-btn" title="Reabrir (voltar p/ Recebidas)" onclick="mudarStatus('${e.id}','recebida')">↩ Reabrir</button>`}
+      <button class="btn ghost sm" title="Imprimir etiqueta p/ colar no sapato" onclick="etiquetaEncomenda('${e.id}')">&#127991; Etiqueta</button>
+      <button class="icon-btn" title="Reabrir (voltar p/ Recebidas)" onclick="mudarStatus('${e.id}','recebida')">↩ Reabrir</button>
     </div>
   </div>`;
 }
@@ -1377,29 +1428,6 @@ async function mudarStatus(id, status){
   if(status==="recebida" && e && ehGestor()){
     setTimeout(()=>{ if(confirm(`Sapato recebido! Avisar a vendedora ${e.vendedora} pelo WhatsApp agora?`)) avisarVendedora(id); }, 150);
   }
-}
-function fotosDe(e){ return (e.fotos&&e.fotos.length)?e.fotos:(e.foto?[e.foto]:[]); }
-function imgCover(e){
-  const fs=fotosDe(e);
-  if(!fs.length) return `<span class="ph">SEM FOTO</span>`;
-  const extra = fs.length>1 ? `<span class="img-mais">+${fs.length-1}</span>` : "";
-  return `<img src="${fs[0]}" onclick="abrirFotos('${e.id}')" style="cursor:zoom-in">${extra}`;
-}
-function abrirFotos(id){
-  const e=encomendas.find(x=>x.id===id); if(!e) return;
-  const fs=fotosDe(e); if(!fs.length) return;
-  const bg=document.createElement("div"); bg.className="lightbox";
-  bg.innerHTML=`<div class="lb-inner">`+fs.map(ft=>`<img src="${ft}">`).join("")+`</div><button class="lb-x" title="Fechar">&times;</button>`;
-  bg.onclick=ev=>{ if(ev.target===bg||ev.target.classList.contains("lb-x")) bg.remove(); };
-  document.body.appendChild(bg);
-}
-async function cancelarEncomenda(id){
-  const e=encomendas.find(x=>x.id===id); if(!e) return;
-  if(!ehGestor()){ toast("Só o gestor/operação pode cancelar"); return; }
-  if(!confirm("Cancelar esta encomenda?\n(ex.: cliente desistiu, reembolso, etc.)")) return;
-  let motivo=""; try{ motivo = prompt("Motivo do cancelamento (opcional):","")||""; }catch(_){}
-  await atualizar(id, {status:"cancelada", dataCancelada:Date.now(), motivoCancelamento:String(motivo).trim()});
-  toast("Encomenda cancelada");
 }
 async function voltarAndamento(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
@@ -1568,8 +1596,8 @@ async function duplicarEncomenda(id){
   const novo = {
     modelo:e.modelo, numeracao:e.numeracao, qtd:e.qtd||1, vendedora:(ehGestor()?e.vendedora:currentUser.nome),
     fabrica:e.fabrica||"", cliente:"", contato:"",
-    pagamento:"aberto", valorTotal:e.valorTotal||0, valorPago:0, pagamentos:[],
-    obs:e.obs||"", fotos:(e.fotos&&e.fotos.length?e.fotos:(e.foto?[e.foto]:[])).slice(), foto:e.foto||null, status:"aberta", dataCriacao:Date.now()
+    pagamento:"pendente", valorTotal:e.valorTotal||0, valorPago:0, pagamentos:[],
+    obs:e.obs||"", foto:e.foto||null, status:"aberta", dataCriacao:Date.now()
   };
   if(usaFirebase){ try{ await db.collection("encomendas").add(novo); }catch(err){toast("Erro");return;} }
   else { novo.id="loc"+Date.now(); encomendas.push(novo); renderTudo(); }
@@ -1578,10 +1606,8 @@ async function duplicarEncomenda(id){
 
 /* ==================== LEMBRETE DE RETIRADA ==================== */
 function msgLembrete(e){
-  const nome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
-  const ola = nome ? `Olá, ${nome}!` : "Olá!";
   const modelo = `${e.modelo}${e.numeracao?` (numeração ${e.numeracao})`:""}`;
-  return `${ola} Aqui é da *Loretto Scarpa*. 👞\n\nPassando para lembrar que o seu sapato da encomenda *${modelo}* continua aqui na loja te esperando 😊. Quer combinar a retirada ou prefere que eu leve até você?`;
+  return `Olá, estou passando aqui para te lembrar que o seu sapato da encomenda *${modelo}* continua aqui na loja te esperando. Quer combinar a retirada ou prefere que eu entregue pra você?`;
 }
 function avisarLembrete(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
