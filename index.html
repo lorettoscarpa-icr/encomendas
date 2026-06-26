@@ -752,13 +752,11 @@ function preencherSelects(){
 }
 preencherSelects();
 
-/* no celular o "Colar" não funciona — deixa a interface clara abrindo a galeria */
+/* no celular, deixa claro o caminho: copiar no WhatsApp e Colar; se não rolar, galeria/câmera */
 (function ajustarFotoCelular(){
   if(!ehCelular()) return;
   const hint = document.getElementById("photoHint");
-  if(hint) hint.innerHTML = "Toque na foto ou em <b>Galeria</b> para escolher a imagem do WhatsApp — ou use a <b>Câmera</b>.";
-  const btnColar = document.querySelector('.photo-zone .btn.sm');
-  if(btnColar) btnColar.textContent = "🖼 Galeria";
+  if(hint) hint.innerHTML = "Copie a foto no WhatsApp e toque em <b>Colar foto</b>. Se não funcionar, toque na foto para escolher da <b>galeria</b> ou use a <b>Câmera</b>.";
 })();
 
 // tabs
@@ -1024,27 +1022,29 @@ document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0
 function ehCelular(){ return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent||""); }
 
 /* colar foto do modelo:
-   - no computador: lê a imagem da área de transferência (Ctrl+V / botão Colar)
-   - no celular: abre direto a galeria (onde fica a foto do WhatsApp), que é o
-     único jeito que funciona de verdade no telefone */
+   1) tenta ler a imagem copiada (funciona no PC e também no iPhone/Android)
+   2) se não achar imagem na área de transferência, no celular abre a galeria;
+      no computador orienta a usar Ctrl+V ou o botão Anexar */
 async function colarFoto(){
-  if(ehCelular()){
-    toast("No celular, escolha a foto da galeria 📷");
-    document.getElementById("fotoFile").click();
-    return;
-  }
+  let semSuporte = false;
   try{
     if(navigator.clipboard && navigator.clipboard.read){
       const itens = await navigator.clipboard.read();
       for(const it of itens){
-        const tipo = it.types.find(t=>/image\//i.test(t));
+        const tipo = (it.types||[]).find(t=>/image\//i.test(t));
         if(tipo){ const blob = await it.getType(tipo); processarFoto(blob); toast("Foto colada ✔"); return; }
       }
-      toast("Nenhuma imagem copiada. Copie a foto e clique em Colar (ou use Ctrl+V).");
-    } else {
-      toast("Cole com Ctrl+V (ou ⌘+V) — ou use o botão Anexar.");
-    }
-  }catch(_){ toast("Não consegui ler a área de transferência. Use Ctrl+V ou o botão Anexar."); }
+    } else { semSuporte = true; }
+  }catch(_){ semSuporte = true; }
+
+  // não havia imagem copiada (ou o navegador não deixou ler)
+  if(ehCelular()){
+    toast("Não achei imagem copiada — escolha a foto da galeria 📷");
+    document.getElementById("fotoFile").click();
+  } else {
+    toast(semSuporte ? "Use Ctrl+V (ou ⌘+V), ou o botão Anexar."
+                     : "Nenhuma imagem copiada. Copie a foto e clique em Colar (ou Ctrl+V).");
+  }
 }
 /* atalho Ctrl/⌘+V: cola a imagem direto quando a aba Nova encomenda está ativa */
 document.addEventListener("paste", e=>{
