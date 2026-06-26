@@ -420,14 +420,13 @@ header{border-radius:0 0 18px 18px}
   <header>
     <div class="topbar"><span id="who-av" class="who-av"></span><span id="who"></span><button class="icon-btn" onclick="logout()">Sair</button></div>
     <div class="brand">
-      <div class="lion">&#9876;</div>
+      
       <h1>Central de Encomendas</h1>
       <div class="sub">Loretto Scarpa</div>
     </div>
     <div class="tabs">
       <button class="tab active" data-view="nova">Nova Encomenda</button>
       <button class="tab tab-gestor" data-view="gestor">Painel do Gestor</button>
-      <button class="tab" data-view="andamento">Em andamento</button>
       <button class="tab" data-view="recebidas">Recebidas</button>
       <button class="tab" data-view="finalizadas">Finalizadas</button>
       <button class="tab tab-gestor" data-view="fabricas">Fábricas</button>
@@ -447,13 +446,13 @@ header{border-radius:0 0 18px 18px}
 
       <div class="grid">
         <div class="photo-zone" id="photoZone">
-          <div id="photoPreview"><span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span></div>
+          <div id="photoPreview" onclick="document.getElementById('fotoFile').click()" style="cursor:pointer"><span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span></div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
             <button type="button" class="btn sm" onclick="colarFoto()">📋 Colar foto</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoCam').click()">📷 Câmera</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoFile').click()">🖼 Anexar</button>
           </div>
-          <div style="font-size:11px;color:var(--creme-suave);opacity:.8;text-align:center;margin-top:8px">Copie a imagem (print/WhatsApp) e clique em <b>Colar</b> — ou use Ctrl+V / ⌘+V</div>
+          <div id="photoHint" style="font-size:11px;color:var(--creme-suave);opacity:.8;text-align:center;margin-top:8px">Copie a imagem (print/WhatsApp) e clique em <b>Colar</b> — ou use Ctrl+V / ⌘+V</div>
           <input type="file" id="fotoCam" accept="image/*" capture="environment" style="display:none">
           <input type="file" id="fotoFile" accept="image/*" style="display:none">
         </div>
@@ -511,16 +510,6 @@ header{border-radius:0 0 18px 18px}
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- ============ EM ANDAMENTO ============ -->
-  <section id="view-andamento" class="view">
-    <div class="panel">
-      <h2>Encomendas em andamento</h2>
-      <p class="hint">Encomendas que ainda não chegaram da fábrica, com o estágio de cada uma e a contagem de dias.</p>
-    </div>
-    <input id="busca-and" class="busca-box" placeholder="🔍 Buscar cliente, modelo ou numeração" oninput="renderAndamento()">
-    <div id="andamento-list"></div>
   </section>
 
   <!-- ============ PAINEL DO GESTOR ============ -->
@@ -624,6 +613,11 @@ const CRONOMETRO = "envio";     // base do contador de 15 dias: "registro" (data
    No telefone das fábricas, use o formato 55 + DDD + número (só dígitos)
    para o botão de WhatsApp já abrir no contato certo. Deixe "" se não tiver. */
 const VENDEDORAS = ["Jhennifer","Ialey","Michelly","Natália"];
+
+/* WhatsApp do gestor (Gregory) que recebe o aviso quando uma vendedora
+   registra uma nova encomenda. Formato: 55 + DDD + número (só dígitos).
+   Ex.: "5562999999999". Deixe "" para apenas copiar o aviso. */
+const WHATS_GESTOR = "5562983129321";   // Gregory — responsável pelas encomendas
 const FABRICAS = [
   { nome:"Manutt (Rafael)",          tel:"" },
   { nome:"Tchwm Shoes (Diego)",      tel:"" },
@@ -757,6 +751,15 @@ function preencherSelects(){
   document.getElementById("flt-fab").innerHTML  = `<option value="">Todas as fábricas</option><option value="__none__">⚠ A alocar (sem fábrica)</option>`+fabOpts;
 }
 preencherSelects();
+
+/* no celular o "Colar" não funciona — deixa a interface clara abrindo a galeria */
+(function ajustarFotoCelular(){
+  if(!ehCelular()) return;
+  const hint = document.getElementById("photoHint");
+  if(hint) hint.innerHTML = "Toque na foto ou em <b>Galeria</b> para escolher a imagem do WhatsApp — ou use a <b>Câmera</b>.";
+  const btnColar = document.querySelector('.photo-zone .btn.sm');
+  if(btnColar) btnColar.textContent = "🖼 Galeria";
+})();
 
 // tabs
 document.querySelectorAll(".tab").forEach(t=>{
@@ -929,7 +932,56 @@ async function salvarEncomenda(){
     else { reg.id="loc"+Date.now(); encomendas.push(reg); renderTudo(); }
     toast("Encomenda registrada ✔ aguardando alocação de fábrica");
     limparForm();
+    // quando quem registra é vendedora, avisa o gestor no WhatsApp
+    if(currentUser && currentUser.papel==="vendedora"){ avisarGestorNovaEncomenda(reg); }
   }catch(e){ console.error(e); toast("Erro ao salvar"); }
+}
+
+/* ===== aviso ao gestor quando uma vendedora registra uma encomenda ===== */
+function telGestor(){
+  if(WHATS_GESTOR) return WHATS_GESTOR;
+  const g = USUARIOS.find(u=>u.usuario==="gregory");
+  return g && g.tel ? g.tel : "";
+}
+function rotuloPagReg(reg){
+  if(reg.pagamento==="pago")    return "Pago integral" + (reg.valorTotal>0?` (${fmtMoeda(reg.valorTotal)})`:"");
+  if(reg.pagamento==="parcial") return `Parcial — pago ${fmtMoeda(reg.valorPago)}` + (reg.valorTotal>0?` de ${fmtMoeda(reg.valorTotal)}`:"");
+  return "Em aberto" + (reg.valorTotal>0?` (total ${fmtMoeda(reg.valorTotal)})`:"");
+}
+function msgNovaEncomenda(reg){
+  return [
+    "🆕 *Nova encomenda registrada*",
+    `Vendedora: *${reg.vendedora}*`,
+    reg.modelo ? `Modelo: ${reg.modelo}` : null,
+    `Numeração: ${reg.numeracao}${reg.qtd>1?` · ${reg.qtd} pares`:""}`,
+    reg.cliente ? `Cliente: ${reg.cliente}` : null,
+    reg.contato ? `Contato: ${reg.contato}` : null,
+    `Pagamento: ${rotuloPagReg(reg)}`,
+    `Registrada em ${fmtData(reg.dataCriacao)}`
+  ].filter(Boolean).join("\n");
+}
+function avisarGestorNovaEncomenda(reg){
+  const msg = msgNovaEncomenda(reg);
+  window._avisoGestorMsg = msg;
+  const tel = waNum(telGestor());
+  const acao = tel
+    ? `<a class="btn wa" style="flex:1;min-width:170px;text-align:center;text-decoration:none" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" target="_blank" onclick="closeModal()">${WA_ICON} Avisar o gestor</a>`
+    : `<button class="btn wa" style="flex:1;min-width:170px" onclick="copiarAvisoGestor()">${WA_ICON} Copiar aviso</button>`;
+  openModal(`
+    <h2>Encomenda registrada ✔</h2>
+    <p class="hint">Avise o gestor pelo WhatsApp que a encomenda foi feita.</p>
+    <div class="oc-obs" style="white-space:pre-line;margin:12px 0">${String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\*/g,"")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${acao}
+      <button class="btn ghost" onclick="closeModal()">Agora não</button>
+    </div>
+  `);
+}
+function copiarAvisoGestor(){
+  const msg = window._avisoGestorMsg||"";
+  navigator.clipboard.writeText(msg).then(()=>toast("Aviso copiado ✔ cole no WhatsApp do gestor"))
+    .catch(()=>prompt("Copie o aviso:", msg));
+  closeModal();
 }
 
 function limparForm(){
@@ -967,20 +1019,32 @@ function processarFoto(file){
 document.getElementById("fotoCam").onchange = e=>processarFoto(e.target.files[0]);
 document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0]);
 
-/* colar foto do modelo: botão "Colar" (lê a área de transferência) */
+/* detecta celular/tablet — nesses aparelhos a leitura de imagem da área de
+   transferência quase nunca funciona, então o caminho certo é abrir a galeria */
+function ehCelular(){ return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent||""); }
+
+/* colar foto do modelo:
+   - no computador: lê a imagem da área de transferência (Ctrl+V / botão Colar)
+   - no celular: abre direto a galeria (onde fica a foto do WhatsApp), que é o
+     único jeito que funciona de verdade no telefone */
 async function colarFoto(){
+  if(ehCelular()){
+    toast("No celular, escolha a foto da galeria 📷");
+    document.getElementById("fotoFile").click();
+    return;
+  }
   try{
     if(navigator.clipboard && navigator.clipboard.read){
       const itens = await navigator.clipboard.read();
       for(const it of itens){
-        const tipo = it.types.find(t=>t.indexOf("image")===0);
+        const tipo = it.types.find(t=>/image\//i.test(t));
         if(tipo){ const blob = await it.getType(tipo); processarFoto(blob); toast("Foto colada ✔"); return; }
       }
       toast("Nenhuma imagem copiada. Copie a foto e clique em Colar (ou use Ctrl+V).");
     } else {
-      toast("Cole com Ctrl+V (ou ⌘+V) com a aba Nova encomenda aberta.");
+      toast("Cole com Ctrl+V (ou ⌘+V) — ou use o botão Anexar.");
     }
-  }catch(_){ toast("Não consegui ler a área de transferência. Use Ctrl+V."); }
+  }catch(_){ toast("Não consegui ler a área de transferência. Use Ctrl+V ou o botão Anexar."); }
 }
 /* atalho Ctrl/⌘+V: cola a imagem direto quando a aba Nova encomenda está ativa */
 document.addEventListener("paste", e=>{
@@ -1034,7 +1098,7 @@ function statusVisual(enc){
 }
 
 /* ==================== RENDER ==================== */
-function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+function renderTudo(){ renderStats(); renderGestor(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
 
 function renderStats(){
   const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
@@ -1073,7 +1137,7 @@ function renderGestor(){
 
   const cont = document.getElementById("gestor-list");
   if(lista.length===0){
-    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+    cont.innerHTML = `<div class="panel empty">
       Nenhuma encomenda nesse filtro.</div>`;
     return;
   }
@@ -1182,7 +1246,7 @@ function renderRecebidas(){
   const cont = document.getElementById("recebidas-list");
   if(!cont) return;
   if(itens.length===0){
-    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+    cont.innerHTML = `<div class="panel empty">
       ${ehVend ? "Nenhum modelo seu recebido ainda." : "Nenhuma encomenda marcada como recebida ainda."}<br>
       <span style="font-size:13px;opacity:.8">${ehVend ? "Assim que o gestor marcar a chegada, o modelo aparece aqui para você avisar o cliente." : "Marque uma encomenda como “Recebida ✔” no Painel do Gestor."}</span></div>`;
     return;
@@ -1220,7 +1284,7 @@ function cardRecebida(e){
         : `<button class="btn sm wa" style="flex:1;min-width:130px" onclick="avisarVendedora('${e.id}')">${WA_ICON} Avisar vendedora</button>
            <button class="icon-btn" title="Copiar mensagem p/ vendedora" onclick="copiarMsgVendedora('${e.id}')">📋</button>
            <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
-           <button class="icon-btn" title="Voltar para Em andamento (marquei por engano)" onclick="voltarAndamento('${e.id}')">↩</button>`}
+           <button class="icon-btn" title="Desfazer chegada (marquei recebida por engano)" onclick="voltarAndamento('${e.id}')">↩</button>`}
     </div>
   </div>`;
 }
@@ -1315,7 +1379,7 @@ function renderAndamento(){
 
   const vis = itens.filter(e=>matchBusca(e, valBusca("busca-and")));
   if(vis.length===0){
-    cont.innerHTML = resumo + `<div class="panel empty"><div class="lion">&#9876;</div>
+    cont.innerHTML = resumo + `<div class="panel empty">
       ${valBusca("busca-and") ? "Nada encontrado na busca." : (ehVend?"Você não tem encomendas em andamento.":"Nenhuma encomenda em andamento.")}</div>`;
     return;
   }
@@ -1357,7 +1421,7 @@ function renderFinalizadas(){
   itens.sort((a,b)=>(b.dataFinalizada||b.dataCriacao)-(a.dataFinalizada||a.dataCriacao));
   const cont = document.getElementById("finalizadas-list"); if(!cont) return;
   if(itens.length===0){
-    cont.innerHTML = `<div class="panel empty"><div class="lion">&#9876;</div>
+    cont.innerHTML = `<div class="panel empty">
       ${ehVend?"Você ainda não tem encomendas finalizadas.":"Nenhuma encomenda finalizada ainda."}</div>`;
     return;
   }
@@ -1431,10 +1495,10 @@ async function mudarStatus(id, status){
 }
 async function voltarAndamento(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
-  if(!confirm("Voltar esta encomenda para “Em andamento”?\n(use caso tenha marcado a chegada por engano)")) return;
+  if(!confirm("Desfazer a chegada desta encomenda?\n(use caso tenha marcado como recebida por engano)")) return;
   const novo = e.fabrica ? "enviada" : "aberta";   // volta pro estágio anterior à chegada
   await atualizar(id, {status:novo, dataRecebida:null});
-  toast("Encomenda voltou para Em andamento ↩");
+  toast("Chegada desfeita — voltou para o Painel do Gestor ↩");
 }
 async function mudarFabrica(id, fabrica){
   await atualizar(id, {fabrica});
@@ -1753,7 +1817,7 @@ function renderFabricas(){
   });
   const fabs=Object.keys(map).sort();
   if(fabs.length===0){
-    cont.innerHTML=`<div class="panel empty"><div class="lion">&#9876;</div>
+    cont.innerHTML=`<div class="panel empty">
       Ainda não há entregas registradas para calcular a pontualidade.<br>
       <span style="font-size:13px;opacity:.8">Os números aparecem conforme você marca encomendas como recebidas.</span></div>`;
     return;
