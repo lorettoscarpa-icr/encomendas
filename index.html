@@ -194,6 +194,7 @@
   .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
   .num-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .num-btns.err-box{outline:1px solid var(--vermelho);outline-offset:4px;border-radius:8px}
+  .photo-zone.err-box{outline:1px solid var(--vermelho);outline-offset:3px}
   .busca-box{width:100%;margin-top:14px}
   .num-btn{font-family:'Barlow';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
     background:var(--verde-esc);color:var(--creme-suave);border-radius:3px;cursor:pointer;transition:.12s}
@@ -447,7 +448,7 @@ header{border-radius:0 0 18px 18px}
 
       <div class="grid">
         <div class="photo-zone" id="photoZone">
-          <div id="photoPreview" onclick="document.getElementById('fotoFile').click()" style="cursor:pointer"><span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span></div>
+          <div id="photoPreview" onclick="document.getElementById('fotoFile').click()" style="cursor:pointer"><span>&#128247;&nbsp; Foto do modelo <span style="color:#e6b8b8;text-transform:none">* obrigatória</span></span></div>
           <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
             <button type="button" class="btn sm" onclick="colarFoto()">📋 Colar foto</button>
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoCam').click()">📷 Câmera</button>
@@ -498,11 +499,11 @@ header{border-radius:0 0 18px 18px}
         </div>
         <div>
           <label id="lbl-vtotal">Valor total <span style="opacity:.5;text-transform:none">(R$)</span></label>
-          <input id="f-vtotal" type="number" min="0" step="0.01" placeholder="0,00">
+          <input id="f-vtotal" type="text" inputmode="numeric" oninput="mascararMoeda(this)" placeholder="Ex.: 289,90">
         </div>
         <div>
           <label id="lbl-vpago">Valor pago <span style="opacity:.5;text-transform:none">(R$)</span></label>
-          <input id="f-vpago" type="number" min="0" step="0.01" placeholder="0,00">
+          <input id="f-vpago" type="text" inputmode="numeric" oninput="mascararMoeda(this)" placeholder="Ex.: 100,00">
         </div>
         <div class="full">
           <label>Observações</label>
@@ -623,6 +624,13 @@ const VENDEDORAS = ["Jhennifer","Ialey","Michelly","Natália"];
    registra uma nova encomenda. Formato: 55 + DDD + número (só dígitos).
    Ex.: "5562999999999". Deixe "" para apenas copiar o aviso. */
 const WHATS_GESTOR = "5562983129321";   // Gregory — responsável pelas encomendas
+
+/* Para onde vai o aviso de novo pedido:
+   - "grupo": abre o WhatsApp com a mensagem PRONTA e a vendedora escolhe o
+     grupo na lista e envia. (O WhatsApp não deixa enviar direto a um grupo
+     por link — esse é o caminho oficial para grupo, sem digitar nada.)
+   - "gestor": vai direto para o número WHATS_GESTOR acima. */
+const AVISO_DESTINO = "gestor";   // "grupo" ou "gestor"
 const FABRICAS = [
   { nome:"Manutt (Rafael)",          tel:"" },
   { nome:"Tchwm Shoes (Diego)",      tel:"" },
@@ -883,13 +891,15 @@ async function salvarEncomenda(){
   const cliente = document.getElementById("f-cliente").value.trim();
   const contato = document.getElementById("f-contato").value.trim();
   const pag = document.getElementById("f-pag").value;
-  const vtotal = parseFloat(document.getElementById("f-vtotal").value)||0;
-  let vpago = parseFloat(document.getElementById("f-vpago").value)||0;
+  const vtotal = valorMoeda(document.getElementById("f-vtotal"));
+  let vpago = valorMoeda(document.getElementById("f-vpago"));
 
   // valida tudo de uma vez e mostra a lista do que está faltando
   ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const nbBox=document.getElementById("numBtns"); if(nbBox) nbBox.classList.remove("err-box");
+  const pZone=document.getElementById("photoZone"); if(pZone) pZone.classList.remove("err-box");
   const faltando=[]; const marca=id=>{const el=document.getElementById(id); if(el) el.classList.add("err");};
+  if(!fotoAtual){ faltando.push("Foto do modelo"); if(pZone) pZone.classList.add("err-box"); }
   if(ehGestor() && !vend){ faltando.push("Selecionar a vendedora"); marca("f-vend"); }
   if(!num){ faltando.push("Numeração"); marca("f-num"); if(nbBox) nbBox.classList.add("err-box"); }
   if(!cliente){ faltando.push("Nome do cliente"); marca("f-cliente"); }
@@ -947,15 +957,18 @@ async function salvarEncomenda(){
     else { reg.id="loc"+Date.now(); novoId = reg.id; encomendas.push(reg); renderTudo(); }
     limparForm();
     if(ehVendedora){
-      // aviso OBRIGATÓRIO: a tela só fecha quando ela avisar o gestor
-      exigirAvisoGestor(reg, novoId);
+      // aviso OBRIGATÓRIO: a tela só fecha quando ela avisar sobre o pedido.
+      // acumula no lote do mesmo cliente para poder avisar tudo de uma vez
+      _pendentesAviso.push({ id: novoId, reg });
+      exigirAvisoGestor();
     } else {
       toast("Encomenda registrada ✔ aguardando alocação de fábrica");
     }
   }catch(e){ console.error(e); toast("Erro ao salvar"); }
 }
 
-/* ===== aviso ao gestor quando uma vendedora registra uma encomenda ===== */
+/* ===== aviso ao gestor quando uma vendedora registra encomenda(s) ===== */
+let _pendentesAviso = [];   // pedidos do mesmo cliente aguardando aviso
 function telGestor(){
   if(WHATS_GESTOR) return WHATS_GESTOR;
   const g = USUARIOS.find(u=>u.usuario==="gregory");
@@ -966,47 +979,95 @@ function rotuloPagReg(reg){
   if(reg.pagamento==="parcial") return `Parcial — pago ${fmtMoeda(reg.valorPago)}` + (reg.valorTotal>0?` de ${fmtMoeda(reg.valorTotal)}`:"");
   return "Em aberto" + (reg.valorTotal>0?` (total ${fmtMoeda(reg.valorTotal)})`:"");
 }
-function msgNovaEncomenda(reg){
-  return [
-    "🆕 *Nova encomenda registrada*",
-    `Vendedora: *${reg.vendedora}*`,
-    reg.modelo ? `Modelo: ${reg.modelo}` : null,
-    `Numeração: ${reg.numeracao}${reg.qtd>1?` · ${reg.qtd} pares`:""}`,
-    reg.cliente ? `Cliente: ${reg.cliente}` : null,
-    reg.contato ? `Contato: ${reg.contato}` : null,
-    `Pagamento: ${rotuloPagReg(reg)}`,
-    `Registrada em ${fmtData(reg.dataCriacao)}`
-  ].filter(Boolean).join("\n");
+/* monta a mensagem: 1 pedido = formato simples; vários do mesmo cliente = lista */
+function msgPedidosCliente(itens){
+  const r0 = itens[0].reg;
+  if(itens.length===1){
+    return [
+      "🆕 *Nova encomenda registrada*",
+      `Vendedora: *${r0.vendedora}*`,
+      r0.modelo ? `Modelo: ${r0.modelo}` : null,
+      `Numeração: ${r0.numeracao}${r0.qtd>1?` · ${r0.qtd} pares`:""}`,
+      r0.cliente ? `Cliente: ${r0.cliente}` : null,
+      r0.contato ? `Contato: ${r0.contato}` : null,
+      `Pagamento: ${rotuloPagReg(r0)}`,
+      `Registrada em ${fmtData(r0.dataCriacao)}`
+    ].filter(Boolean).join("\n");
+  }
+  const mesmoCliente = itens.every(it => (it.reg.cliente||"") === (r0.cliente||"") && (it.reg.contato||"") === (r0.contato||""));
+  const linhas = [
+    `🆕 *${itens.length} encomendas registradas*`,
+    `Vendedora: *${r0.vendedora}*`,
+    (mesmoCliente && r0.cliente) ? `Cliente: *${r0.cliente}*` : null,
+    (mesmoCliente && r0.contato) ? `Contato: ${r0.contato}` : null,
+    "",
+    "*Pedidos:*"
+  ].filter(x=>x!==null);
+  itens.forEach((it,i)=>{
+    const r=it.reg;
+    const partes=[ r.modelo||"(sem modelo)", `Num ${r.numeracao}${r.qtd>1?` · ${r.qtd} pares`:""}`, rotuloPagReg(r) ];
+    if(!mesmoCliente && r.cliente) partes.unshift(r.cliente);
+    linhas.push(`${i+1}) ${partes.join(" — ")}`);
+  });
+  linhas.push("");
+  linhas.push(`Registradas em ${fmtData(itens[itens.length-1].reg.dataCriacao)}`);
+  return linhas.join("\n");
 }
-/* AVISO OBRIGATÓRIO: depois de cadastrar, a vendedora só sai desta tela
-   tocando em "Avisar o gestor". Enquanto não avisar, a encomenda fica
-   marcada como "sem aviso" e o gestor não consegue alocar fábrica. */
-function exigirAvisoGestor(reg, id){
-  const msg = msgNovaEncomenda(reg);
+/* AVISO OBRIGATÓRIO: a vendedora só sai desta tela avisando sobre o pedido.
+   Pode adicionar outros pedidos do mesmo cliente antes de avisar — o aviso sai
+   numa mensagem só com todos eles. */
+function exigirAvisoGestor(){
+  const itens = _pendentesAviso;
+  if(!itens.length){ fecharModalForcado(); return; }
+  const msg = msgPedidosCliente(itens);
   window._avisoGestorMsg = msg;
-  window._avisoGestorId  = id;
   const tel = waNum(telGestor());
-  const acao = tel
-    ? `<a class="btn wa" style="flex:1;min-width:220px;text-align:center;text-decoration:none" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" target="_blank" onclick="marcarAvisado('${id}')">${WA_ICON} Avisar o gestor agora</a>`
-    : `<button class="btn wa" style="flex:1;min-width:220px" onclick="copiarEmarcar('${id}')">${WA_ICON} Copiar aviso e confirmar</button>`;
+  const n = itens.length;
+  const cli = itens[0].reg.cliente || "o cliente";
+  const usarGrupo = (AVISO_DESTINO === "grupo");
+  const link = usarGrupo
+    ? `https://wa.me/?text=${encodeURIComponent(msg)}`
+    : (tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : "");
+  const acao = link
+    ? `<a class="btn wa" style="flex:1;min-width:200px;text-align:center;text-decoration:none" href="${link}" target="_blank" onclick="marcarTodosAvisados()">${WA_ICON} Avisar agora${n>1?` (${n})`:""}</a>`
+    : `<button class="btn wa" style="flex:1;min-width:200px" onclick="copiarEmarcar()">${WA_ICON} Copiar aviso e confirmar</button>`;
+  const addBtn = `<button class="btn ghost" style="flex:1;min-width:200px" onclick="adicionarOutroPedido()">➕ Adicionar outro pedido para o mesmo cliente</button>`;
+  const instr = usarGrupo
+    ? `Esta encomenda <b>só vai para a fábrica depois que você avisar sobre o pedido</b>. Toque em <b>Avisar agora</b>, escolha o <b>grupo de encomendas</b> na lista e envie.`
+    : `Esta encomenda <b>só vai para a fábrica depois que você avisar sobre o pedido</b> pelo WhatsApp. Toque no botão, confira a mensagem e <b>envie</b>.`;
   openModal(`
-    <h2>Avise o gestor para entrar em produção</h2>
-    <p class="hint">Esta encomenda <b>só vai para a fábrica depois que você avisar</b> o gestor pelo WhatsApp. Toque no botão, confira a mensagem e <b>envie</b>.</p>
+    <h2>Avise sobre o pedido</h2>
+    <p class="hint">${n>1?`<b>${n} pedidos</b> de <b>${cli}</b> aguardando aviso. `:""}${instr}</p>
     <div class="oc-obs" style="white-space:pre-line;margin:12px 0">${String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\*/g,"")}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${acao}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${acao}${addBtn}</div>
     <div style="font-size:11px;opacity:.7;margin-top:10px">⚠ Sem o aviso, o pedido não é colocado em produção.</div>
   `, true);
 }
-async function marcarAvisado(id){
-  try{ await atualizar(id, {avisado:true, avisadoEm:Date.now()}); }catch(_){}
+async function marcarTodosAvisados(){
+  const itens = _pendentesAviso.slice();
+  _pendentesAviso = [];
+  for(const it of itens){ try{ await atualizar(it.id, {avisado:true, avisadoEm:Date.now()}); }catch(_){} }
   fecharModalForcado();
-  toast("Gestor avisado ✔ pedido liberado para produção");
+  toast(itens.length>1 ? `${itens.length} pedidos avisados ✔` : "Avisado ✔ pedido liberado para produção");
 }
-function copiarEmarcar(id){
+function copiarEmarcar(){
   const msg = window._avisoGestorMsg||"";
   navigator.clipboard.writeText(msg).then(()=>toast("Aviso copiado — cole e envie no WhatsApp do gestor"))
     .catch(()=>prompt("Copie o aviso:", msg));
-  marcarAvisado(id);
+  marcarTodosAvisados();
+}
+/* mantém o cliente preenchido e libera o formulário para o próximo pedido */
+function adicionarOutroPedido(){
+  const itens = _pendentesAviso;
+  const last = itens.length ? itens[itens.length-1].reg : null;
+  fecharModalForcado();
+  if(last){
+    const c=document.getElementById("f-cliente"); if(c) c.value=last.cliente||"";
+    const k=document.getElementById("f-contato"); if(k) k.value=last.contato||"";
+  }
+  const nova=document.getElementById("view-nova"); if(nova) nova.scrollIntoView({behavior:"smooth",block:"start"});
+  const m=document.getElementById("f-modelo"); if(m) setTimeout(()=>m.focus(),200);
+  toast("Cliente mantido — cadastre o próximo pedido (foto, modelo e numeração)");
 }
 
 function limparForm(){
@@ -1018,7 +1079,7 @@ function limparForm(){
   ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const box=document.getElementById("form-erros"); if(box){ box.style.display="none"; box.innerHTML=""; }
   fotoAtual=null;
-  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="color:#e6b8b8;text-transform:none">* obrigatória</span></span>`;
   document.getElementById("fotoCam").value=""; document.getElementById("fotoFile").value="";
   syncNumBtns();
 }
@@ -1035,6 +1096,7 @@ function processarFoto(file){
       const c=document.createElement("canvas");c.width=w;c.height=h;
       c.getContext("2d").drawImage(img,0,0,w,h);
       fotoAtual=c.toDataURL("image/jpeg",0.7);
+      const pz=document.getElementById("photoZone"); if(pz) pz.classList.remove("err-box");
       document.getElementById("photoPreview").innerHTML=`
         <div style="position:relative;display:inline-block">
           <img src="${fotoAtual}" style="max-height:170px;border-radius:3px;display:block">
@@ -1053,7 +1115,7 @@ document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0
 /* remover a foto anexada (anexei errada / quero trocar) */
 function removerFoto(){
   fotoAtual=null;
-  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="color:#e6b8b8;text-transform:none">* obrigatória</span></span>`;
   const fc=document.getElementById("fotoCam"), ff=document.getElementById("fotoFile");
   if(fc) fc.value=""; if(ff) ff.value="";
   toast("Foto removida — pode anexar outra");
@@ -1646,8 +1708,8 @@ function abrirPagamento(id){
       <div class="stat ${saldo>0?'alert':''}"><div class="n" style="font-size:18px">${fmtMoeda(saldo)}</div><div class="l">Saldo</div></div>
     </div>
     <div class="grid">
-      <div><label>Valor total (R$)</label><input id="pg-total" type="number" step="0.01" value="${total||''}"></div>
-      <div><label>Registrar pagamento (R$)</label><input id="pg-valor" type="number" step="0.01" placeholder="0,00"></div>
+      <div><label>Valor total (R$)</label><input id="pg-total" type="text" inputmode="numeric" oninput="mascararMoeda(this)" value="${fmtMoedaInput(total)}" placeholder="Ex.: 289,90"></div>
+      <div><label>Registrar pagamento (R$)</label><input id="pg-valor" type="text" inputmode="numeric" oninput="mascararMoeda(this)" placeholder="Ex.: 100,00"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn" onclick="salvarPagamento('${e.id}')">Registrar pagamento</button>
@@ -1663,8 +1725,8 @@ function _pagamentosBase(e){
 }
 async function salvarPagamento(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
-  const total = parseFloat(document.getElementById("pg-total").value)||0;
-  const valor = parseFloat(document.getElementById("pg-valor").value)||0;
+  const total = valorMoeda(document.getElementById("pg-total"));
+  const valor = valorMoeda(document.getElementById("pg-valor"));
   const pagamentos = _pagamentosBase(e);
   if(valor>0) pagamentos.push({data:Date.now(), valor});
   const soma = pagamentos.reduce((s,p)=>s+p.valor,0);
@@ -1674,7 +1736,7 @@ async function salvarPagamento(id){
 }
 async function quitarSaldo(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
-  const total = parseFloat(document.getElementById("pg-total").value) || (e.valorTotal||0);
+  const total = valorMoeda(document.getElementById("pg-total")) || (e.valorTotal||0);
   const pagamentos = _pagamentosBase(e);
   const soma0 = pagamentos.reduce((s,p)=>s+p.valor,0);
   const saldo = Math.max(0, total - soma0);
@@ -1874,6 +1936,21 @@ async function gerarPDF(fab){
 function fmtData(ts){ const d=new Date(ts);
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
 function fmtMoeda(v){ return "R$ "+(Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+/* ===== máscara de dinheiro (sempre com vírgula, estilo centavos) =====
+   a vendedora digita só os números e a vírgula aparece sozinha:
+   2 8 9 9 0  ->  289,90   |   1 2 3 4 5 6 7 -> 12.345,67 */
+function fmtCentavos(v){
+  let d = String(v==null?"":v).replace(/\D/g,"").replace(/^0+(?=\d)/,"");
+  if(d==="") return "";
+  while(d.length<3) d="0"+d;
+  const cents = d.slice(-2);
+  const int = d.slice(0,-2).replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  return int+","+cents;
+}
+function mascararMoeda(el){ if(el) el.value = fmtCentavos(el.value); }
+function valorMoeda(el){ const v=String((el&&el.value)||"").replace(/\./g,"").replace(",","."); return parseFloat(v)||0; }
+function fmtMoedaInput(v){ v=Number(v)||0; return v?fmtCentavos(String(Math.round(v*100))):""; }
 function waNum(c){ let d=String(c||"").replace(/\D/g,""); if(d && !d.startsWith("55")) d="55"+d; return d; }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
 function attr(s){ return String(s==null?"":s).replace(/"/g,"&quot;"); }
