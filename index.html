@@ -193,6 +193,7 @@
   .empty .lion{font-size:34px;color:var(--gold);opacity:.5;margin-bottom:10px}
   .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
   .num-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .num-btns.err-box{outline:1px solid var(--vermelho);outline-offset:4px;border-radius:8px}
   .busca-box{width:100%;margin-top:14px}
   .num-btn{font-family:'Barlow';font-size:13px;padding:6px 11px;border:1px solid var(--linha);
     background:var(--verde-esc);color:var(--creme-suave);border-radius:3px;cursor:pointer;transition:.12s}
@@ -453,6 +454,10 @@ header{border-radius:0 0 18px 18px}
             <button type="button" class="btn ghost sm" onclick="document.getElementById('fotoFile').click()">🖼 Anexar</button>
           </div>
           <div id="photoHint" style="font-size:11px;color:var(--creme-suave);opacity:.8;text-align:center;margin-top:8px">Copie a imagem (print/WhatsApp) e clique em <b>Colar</b> — ou use Ctrl+V / ⌘+V</div>
+          <div id="pasteBox" contenteditable="true" inputmode="none"
+               style="display:none;margin-top:10px;min-height:46px;border:1px dashed var(--gold);border-radius:8px;padding:12px 10px;color:var(--gold-claro);font-size:13px;text-align:center;cursor:text;outline:none">
+            👆 Toque aqui, segure e escolha <b>“Colar”</b>
+          </div>
           <input type="file" id="fotoCam" accept="image/*" capture="environment" style="display:none">
           <input type="file" id="fotoFile" accept="image/*" style="display:none">
         </div>
@@ -462,8 +467,8 @@ header{border-radius:0 0 18px 18px}
           <input id="f-modelo" placeholder="Ex.: Oxford Wholecut Café">
         </div>
         <div class="full">
-          <label>Numeração *</label>
-          <input id="f-num" placeholder="Toque nos tamanhos ou digite">
+          <label>Numeração * <span style="opacity:.5;text-transform:none">(toque nos tamanhos)</span></label>
+          <input type="hidden" id="f-num">
           <div class="num-btns" id="numBtns"></div>
         </div>
         <div id="campo-vend">
@@ -479,7 +484,7 @@ header{border-radius:0 0 18px 18px}
           <input id="f-cliente" placeholder="Nome do cliente">
         </div>
         <div>
-          <label>Contato do cliente <span style="opacity:.5;text-transform:none">(WhatsApp · opcional)</span></label>
+          <label>Contato do cliente * <span style="opacity:.5;text-transform:none">(WhatsApp)</span></label>
           <input id="f-contato" placeholder="Ex.: 62 9 9999-9999">
         </div>
         <div>
@@ -752,11 +757,13 @@ function preencherSelects(){
 }
 preencherSelects();
 
-/* no celular, deixa claro o caminho: copiar no WhatsApp e Colar; se não rolar, galeria/câmera */
+/* no celular, mostra o campo de colar e explica o caminho do iPhone */
 (function ajustarFotoCelular(){
   if(!ehCelular()) return;
   const hint = document.getElementById("photoHint");
-  if(hint) hint.innerHTML = "Copie a foto no WhatsApp e toque em <b>Colar foto</b>. Se não funcionar, toque na foto para escolher da <b>galeria</b> ou use a <b>Câmera</b>.";
+  if(hint) hint.innerHTML = "<b>iPhone:</b> copie a foto no WhatsApp, toque em <b>Colar foto</b> e, no quadro que aparecer, segure e escolha <b>“Colar”</b>. Ou use <b>Câmera</b>/<b>Anexar</b>.";
+  const box = document.getElementById("pasteBox");
+  if(box) box.style.display="block";
 })();
 
 // tabs
@@ -881,9 +888,10 @@ async function salvarEncomenda(){
 
   // valida tudo de uma vez e mostra a lista do que está faltando
   ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  const nbBox=document.getElementById("numBtns"); if(nbBox) nbBox.classList.remove("err-box");
   const faltando=[]; const marca=id=>{const el=document.getElementById(id); if(el) el.classList.add("err");};
   if(ehGestor() && !vend){ faltando.push("Selecionar a vendedora"); marca("f-vend"); }
-  if(!num){ faltando.push("Numeração"); marca("f-num"); }
+  if(!num){ faltando.push("Numeração"); marca("f-num"); if(nbBox) nbBox.classList.add("err-box"); }
   if(!cliente){ faltando.push("Nome do cliente"); marca("f-cliente"); }
   if(!contato){ faltando.push("Telefone do cliente"); marca("f-contato"); }
   if(!pag){ faltando.push("Forma de pagamento"); marca("f-pag"); }
@@ -1027,7 +1035,13 @@ function processarFoto(file){
       const c=document.createElement("canvas");c.width=w;c.height=h;
       c.getContext("2d").drawImage(img,0,0,w,h);
       fotoAtual=c.toDataURL("image/jpeg",0.7);
-      document.getElementById("photoPreview").innerHTML=`<img src="${fotoAtual}" style="max-height:170px;border-radius:3px">`;
+      document.getElementById("photoPreview").innerHTML=`
+        <div style="position:relative;display:inline-block">
+          <img src="${fotoAtual}" style="max-height:170px;border-radius:3px;display:block">
+          <button type="button" title="Excluir foto" onclick="event.stopPropagation();removerFoto()"
+            style="position:absolute;top:-9px;right:-9px;width:28px;height:28px;line-height:1;border-radius:50%;border:2px solid var(--creme);background:var(--vermelho);color:#fff;font-size:15px;font-weight:bold;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.45)">✕</button>
+        </div>
+        <div style="text-align:center;margin-top:8px"><button type="button" class="btn ghost sm" onclick="event.stopPropagation();removerFoto()">🗑 Excluir foto</button></div>`;
     };
     img.src=ev.target.result;
   };
@@ -1036,16 +1050,37 @@ function processarFoto(file){
 document.getElementById("fotoCam").onchange = e=>processarFoto(e.target.files[0]);
 document.getElementById("fotoFile").onchange = e=>processarFoto(e.target.files[0]);
 
-/* detecta celular/tablet — nesses aparelhos a leitura de imagem da área de
-   transferência quase nunca funciona, então o caminho certo é abrir a galeria */
+/* remover a foto anexada (anexei errada / quero trocar) */
+function removerFoto(){
+  fotoAtual=null;
+  document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="opacity:.5;text-transform:none">(opcional)</span></span>`;
+  const fc=document.getElementById("fotoCam"), ff=document.getElementById("fotoFile");
+  if(fc) fc.value=""; if(ff) ff.value="";
+  toast("Foto removida — pode anexar outra");
+}
+
+/* detecta celular/tablet */
 function ehCelular(){ return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent||""); }
 
+/* extrai a primeira imagem de um evento de colar (cobre items e files) */
+function imagemDoPaste(e){
+  const cd = e.clipboardData; if(!cd) return null;
+  if(cd.items){
+    for(const it of cd.items){
+      if(it.type && /image\//i.test(it.type)){ const f=it.getAsFile(); if(f) return f; }
+    }
+  }
+  if(cd.files && cd.files.length){
+    for(const f of cd.files){ if(f && /image\//i.test(f.type)) return f; }
+  }
+  return null;
+}
+
 /* colar foto do modelo:
-   1) tenta ler a imagem copiada (funciona no PC e também no iPhone/Android)
-   2) se não achar imagem na área de transferência, no celular abre a galeria;
-      no computador orienta a usar Ctrl+V ou o botão Anexar */
+   1) tenta ler a imagem copiada (PC e Android costumam aceitar)
+   2) no iPhone o caminho que funciona é o "campo de colar": focamos nele e o
+      usuário segura → "Colar"; também deixamos Câmera/Anexar como alternativa */
 async function colarFoto(){
-  let semSuporte = false;
   try{
     if(navigator.clipboard && navigator.clipboard.read){
       const itens = await navigator.clipboard.read();
@@ -1053,31 +1088,47 @@ async function colarFoto(){
         const tipo = (it.types||[]).find(t=>/image\//i.test(t));
         if(tipo){ const blob = await it.getType(tipo); processarFoto(blob); toast("Foto colada ✔"); return; }
       }
-    } else { semSuporte = true; }
-  }catch(_){ semSuporte = true; }
+    }
+  }catch(_){ /* iOS normalmente cai aqui — segue pro campo de colar */ }
 
-  // não havia imagem copiada (ou o navegador não deixou ler)
   if(ehCelular()){
-    toast("Não achei imagem copiada — escolha a foto da galeria 📷");
-    document.getElementById("fotoFile").click();
+    const box = document.getElementById("pasteBox");
+    if(box){
+      box.style.display="block";
+      box.scrollIntoView({behavior:"smooth",block:"center"});
+      box.focus();
+      try{ const r=document.createRange(); r.selectNodeContents(box); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }catch(_){}
+      toast("Segure no quadro destacado e escolha “Colar”");
+    } else {
+      document.getElementById("fotoFile").click();
+    }
   } else {
-    toast(semSuporte ? "Use Ctrl+V (ou ⌘+V), ou o botão Anexar."
-                     : "Nenhuma imagem copiada. Copie a foto e clique em Colar (ou Ctrl+V).");
+    toast("Nenhuma imagem copiada. Copie a foto e clique em Colar (ou Ctrl+V).");
   }
 }
-/* atalho Ctrl/⌘+V: cola a imagem direto quando a aba Nova encomenda está ativa */
+
+/* campo de colar (principalmente iPhone): ao colar, captura a imagem */
+(function ligarPasteBox(){
+  const box=document.getElementById("pasteBox"); if(!box) return;
+  box.addEventListener("paste", e=>{
+    const f=imagemDoPaste(e);
+    e.preventDefault();
+    box.innerHTML = "👆 Toque aqui, segure e escolha “Colar”";
+    if(f){ processarFoto(f); toast("Foto colada ✔"); box.blur(); }
+    else { toast("Não veio imagem. Copie a foto de novo no WhatsApp e tente colar."); }
+  });
+  // não deixa texto sujo ficar no campo
+  box.addEventListener("input", ()=>{ if(!box.querySelector("img")) {/* limpa abaixo no blur */} });
+  box.addEventListener("blur", ()=>{ box.innerHTML = "👆 Toque aqui, segure e escolha “Colar”"; });
+})();
+
+/* atalho Ctrl/⌘+V no computador: cola a imagem quando a aba Nova encomenda está ativa */
 document.addEventListener("paste", e=>{
   const nova = document.getElementById("view-nova");
   if(!nova || !nova.classList.contains("active")) return;
-  const t = e.target && e.target.tagName;
-  if(t==="INPUT" || t==="TEXTAREA" || t==="SELECT") {/* ainda permite colar imagem */}
-  const items = e.clipboardData && e.clipboardData.items; if(!items) return;
-  for(const it of items){
-    if(it.type && it.type.indexOf("image")===0){
-      const f=it.getAsFile();
-      if(f){ e.preventDefault(); processarFoto(f); toast("Foto colada ✔"); return; }
-    }
-  }
+  if(e.target && e.target.id==="pasteBox") return; // já tratado pelo campo de colar
+  const f=imagemDoPaste(e);
+  if(f){ e.preventDefault(); processarFoto(f); toast("Foto colada ✔"); }
 });
 
 /* numeração em botões */
@@ -1093,6 +1144,7 @@ function toggleNum(t){
   if(i>=0) arr.splice(i,1); else arr.push(s);
   arr.sort((a,b)=>parseFloat(a)-parseFloat(b));
   document.getElementById("f-num").value=arr.join(", ");
+  const nb=document.getElementById("numBtns"); if(nb) nb.classList.remove("err-box");
   syncNumBtns();
 }
 function syncNumBtns(){
