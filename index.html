@@ -466,7 +466,7 @@ header{border-radius:0 0 18px 18px}
           <input id="f-num" placeholder="Toque nos tamanhos ou digite">
           <div class="num-btns" id="numBtns"></div>
         </div>
-        <div>
+        <div id="campo-vend">
           <label>Vendedora</label>
           <select id="f-vend"></select>
         </div>
@@ -836,15 +836,18 @@ function aplicarPapel(){
   const eh = ehGestor();
   document.querySelectorAll(".tab-gestor").forEach(t=>t.style.display = eh?"":"none");
   const sel=document.getElementById("f-vend");
+  const campoVend=document.getElementById("campo-vend");
   if(!eh){
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
     document.querySelector('.tab[data-view="nova"]').classList.add("active");
     document.getElementById("view-nova").classList.add("active");
-    // vendedora fica travada no próprio nome — não lança para outra
+    // vendedora logada: o nome dela já é conhecido — esconde o campo e trava no nome dela
     if(sel){ if([...sel.options].some(o=>o.value===currentUser.nome)) sel.value=currentUser.nome; sel.disabled=true; }
+    if(campoVend) campoVend.style.display="none";
   } else {
     if(sel) sel.disabled=false;
+    if(campoVend) campoVend.style.display="";
   }
   renderRecebidas();
 }
@@ -907,6 +910,7 @@ async function salvarEncomenda(){
   let foto = fotoAtual;
 
   const pagamentos = vpago>0 ? [{data:Date.now(), valor:vpago}] : [];
+  const ehVendedora = !!(currentUser && currentUser.papel==="vendedora");
   const reg = {
     modelo,
     numeracao: num,
@@ -922,16 +926,24 @@ async function salvarEncomenda(){
     obs: document.getElementById("f-obs").value.trim(),
     foto: foto,
     status: "aberta",
-    dataCriacao: Date.now()
+    dataCriacao: Date.now(),
+    // se quem cadastra é vendedora, a encomenda nasce SEM aviso e não pode ir
+    // para produção até ela avisar o gestor; gestor/operação já entra avisado
+    avisado: ehVendedora ? false : true,
+    avisadoEm: ehVendedora ? null : Date.now()
   };
 
   try{
-    if(usaFirebase){ await db.collection("encomendas").add(reg); }
-    else { reg.id="loc"+Date.now(); encomendas.push(reg); renderTudo(); }
-    toast("Encomenda registrada ✔ aguardando alocação de fábrica");
+    let novoId;
+    if(usaFirebase){ const ref = await db.collection("encomendas").add(reg); novoId = ref.id; }
+    else { reg.id="loc"+Date.now(); novoId = reg.id; encomendas.push(reg); renderTudo(); }
     limparForm();
-    // quando quem registra é vendedora, avisa o gestor no WhatsApp
-    if(currentUser && currentUser.papel==="vendedora"){ avisarGestorNovaEncomenda(reg); }
+    if(ehVendedora){
+      // aviso OBRIGATÓRIO: a tela só fecha quando ela avisar o gestor
+      exigirAvisoGestor(reg, novoId);
+    } else {
+      toast("Encomenda registrada ✔ aguardando alocação de fábrica");
+    }
   }catch(e){ console.error(e); toast("Erro ao salvar"); }
 }
 
@@ -958,28 +970,35 @@ function msgNovaEncomenda(reg){
     `Registrada em ${fmtData(reg.dataCriacao)}`
   ].filter(Boolean).join("\n");
 }
-function avisarGestorNovaEncomenda(reg){
+/* AVISO OBRIGATÓRIO: depois de cadastrar, a vendedora só sai desta tela
+   tocando em "Avisar o gestor". Enquanto não avisar, a encomenda fica
+   marcada como "sem aviso" e o gestor não consegue alocar fábrica. */
+function exigirAvisoGestor(reg, id){
   const msg = msgNovaEncomenda(reg);
   window._avisoGestorMsg = msg;
+  window._avisoGestorId  = id;
   const tel = waNum(telGestor());
   const acao = tel
-    ? `<a class="btn wa" style="flex:1;min-width:170px;text-align:center;text-decoration:none" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" target="_blank" onclick="closeModal()">${WA_ICON} Avisar o gestor</a>`
-    : `<button class="btn wa" style="flex:1;min-width:170px" onclick="copiarAvisoGestor()">${WA_ICON} Copiar aviso</button>`;
+    ? `<a class="btn wa" style="flex:1;min-width:220px;text-align:center;text-decoration:none" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" target="_blank" onclick="marcarAvisado('${id}')">${WA_ICON} Avisar o gestor agora</a>`
+    : `<button class="btn wa" style="flex:1;min-width:220px" onclick="copiarEmarcar('${id}')">${WA_ICON} Copiar aviso e confirmar</button>`;
   openModal(`
-    <h2>Encomenda registrada ✔</h2>
-    <p class="hint">Avise o gestor pelo WhatsApp que a encomenda foi feita.</p>
+    <h2>Avise o gestor para entrar em produção</h2>
+    <p class="hint">Esta encomenda <b>só vai para a fábrica depois que você avisar</b> o gestor pelo WhatsApp. Toque no botão, confira a mensagem e <b>envie</b>.</p>
     <div class="oc-obs" style="white-space:pre-line;margin:12px 0">${String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\*/g,"")}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      ${acao}
-      <button class="btn ghost" onclick="closeModal()">Agora não</button>
-    </div>
-  `);
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${acao}</div>
+    <div style="font-size:11px;opacity:.7;margin-top:10px">⚠ Sem o aviso, o pedido não é colocado em produção.</div>
+  `, true);
 }
-function copiarAvisoGestor(){
+async function marcarAvisado(id){
+  try{ await atualizar(id, {avisado:true, avisadoEm:Date.now()}); }catch(_){}
+  fecharModalForcado();
+  toast("Gestor avisado ✔ pedido liberado para produção");
+}
+function copiarEmarcar(id){
   const msg = window._avisoGestorMsg||"";
-  navigator.clipboard.writeText(msg).then(()=>toast("Aviso copiado ✔ cole no WhatsApp do gestor"))
+  navigator.clipboard.writeText(msg).then(()=>toast("Aviso copiado — cole e envie no WhatsApp do gestor"))
     .catch(()=>prompt("Copie o aviso:", msg));
-  closeModal();
+  marcarAvisado(id);
 }
 
 function limparForm(){
@@ -1180,9 +1199,11 @@ function renderGestor(){
 function card(e){
   const sv = statusVisual(e);
   const d = diasDe(e);
+  const semAviso = e.avisado===false;   // só bloqueia as novas; legados (undefined) passam
   const badgeDias = e.status==="cancelada" ? `<span class="badge b-pend">✕ Cancelada</span>`
     : (e.status==="recebida"||e.status==="finalizada") ? `<span class="badge b-dias">✔ ${e.status==='finalizada'?'Finalizada':'Recebida'}</span>`
     : `<span class="badge b-dias ${sv.badge}">${d}d / ${PRAZO_DIAS}d ${d>PRAZO_DIAS?'⚠':''}</span>`;
+  const badgeAviso = semAviso ? `<span class="badge b-pend" style="border-color:var(--ambar);color:var(--ambar)">⚠ Sem aviso da vendedora</span>` : "";
   const fabOpts = FABRICAS.map(f=>`<option ${e.fabrica===f.nome?'selected':''}>${f.nome}</option>`).join("");
   return `<div class="oc ${sv.cls}">
     <label class="oc-check"><input type="checkbox" onclick="toggleSel('${e.id}',this.checked)" ${selecionados.has(e.id)?'checked':''}></label>
@@ -1193,6 +1214,7 @@ function card(e){
         ${badgeDias}
         <span class="badge b-vend">${e.vendedora||''}</span>
         ${pagBadge(e)}
+        ${badgeAviso}
       </div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
@@ -1212,12 +1234,17 @@ function card(e){
         <option value="finalizada"${e.status==='finalizada'?'selected':''}>Finalizada ✓</option>
         <option value="cancelada"${e.status==='cancelada'?'selected':''}>Cancelada ✕</option>
       </select>
+      ${semAviso?`<button class="btn ghost sm" title="Marcar esta encomenda como avisada" onclick="liberarSemAviso('${e.id}')">✓ Marcar avisado</button>`:''}
       <button class="icon-btn" title="Editar" onclick="editarEncomenda('${e.id}')">✏️</button>
       <button class="icon-btn" title="Pagamento" onclick="abrirPagamento('${e.id}')">💰</button>
       <button class="icon-btn" title="Duplicar" onclick="duplicarEncomenda('${e.id}')">⧉</button>
       <button class="icon-btn del" title="Excluir" onclick="excluir('${e.id}')">🗑</button>
     </div>
   </div>`;
+}
+async function liberarSemAviso(id){
+  if(!confirm("Marcar esta encomenda como avisada?")) return;
+  try{ await atualizar(id, {avisado:true, avisadoEm:Date.now()}); toast("Marcada como avisada ✔"); }catch(_){ toast("Não consegui atualizar"); }
 }
 function pagBadge(e){
   if(isPago(e)) return `<span class="badge b-pago">Pago ✔</span>`;
@@ -1801,8 +1828,10 @@ function attr(s){ return String(s==null?"":s).replace(/"/g,"&quot;"); }
 function txt(s){ return String(s==null?"":s).replace(/</g,"&lt;"); }
 
 /* ==================== MODAL ==================== */
-function openModal(html){ document.getElementById("modal-card").innerHTML=html; document.getElementById("modal").classList.add("show"); }
-function closeModal(){ document.getElementById("modal").classList.remove("show"); }
+let _modalTravado=false;
+function openModal(html, travar){ document.getElementById("modal-card").innerHTML=html; document.getElementById("modal").classList.add("show"); _modalTravado=!!travar; }
+function closeModal(){ if(_modalTravado) return; document.getElementById("modal").classList.remove("show"); }
+function fecharModalForcado(){ _modalTravado=false; document.getElementById("modal").classList.remove("show"); }
 
 /* ==================== PONTUALIDADE POR FÁBRICA ==================== */
 function renderFabricas(){
