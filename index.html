@@ -429,6 +429,7 @@ header{border-radius:0 0 18px 18px}
     <div class="tabs">
       <button class="tab active" data-view="nova">Nova Encomenda</button>
       <button class="tab tab-gestor" data-view="gestor">Painel do Gestor</button>
+      <button class="tab tab-vend" data-view="andamento">Em andamento</button>
       <button class="tab" data-view="recebidas">Recebidas</button>
       <button class="tab" data-view="finalizadas">Finalizadas</button>
       <button class="tab tab-gestor" data-view="fabricas">Fábricas</button>
@@ -548,6 +549,16 @@ header{border-radius:0 0 18px 18px}
 
     <div id="bulk-bar" class="bulk-bar"></div>
     <div id="gestor-list"></div>
+  </section>
+
+  <!-- ============ EM ANDAMENTO (vendedora) ============ -->
+  <section id="view-andamento" class="view">
+    <div class="panel">
+      <h2>Em andamento</h2>
+      <p class="hint">Suas encomendas que ainda não chegaram da fábrica — com o estágio e a contagem de dias de cada uma.</p>
+    </div>
+    <input id="busca-and" class="busca-box" placeholder="🔍 Buscar cliente, modelo ou numeração" oninput="renderAndamento()">
+    <div id="andamento-list"></div>
   </section>
 
   <!-- ============ RECEBIDAS ============ -->
@@ -850,6 +861,7 @@ function entrarApp(){
 function aplicarPapel(){
   const eh = ehGestor();
   document.querySelectorAll(".tab-gestor").forEach(t=>t.style.display = eh?"":"none");
+  document.querySelectorAll(".tab-vend").forEach(t=>t.style.display = eh?"none":"");
   const sel=document.getElementById("f-vend");
   const campoVend=document.getElementById("campo-vend");
   if(!eh){
@@ -1231,7 +1243,7 @@ function statusVisual(enc){
 }
 
 /* ==================== RENDER ==================== */
-function renderTudo(){ renderStats(); renderGestor(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
 
 function renderStats(){
   const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
