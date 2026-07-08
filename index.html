@@ -1244,7 +1244,7 @@ function statusVisual(enc){
 }
 
 /* ==================== RENDER ==================== */
-function renderTudo(){ renderStats(); renderGestor(); renderEnvioVendedoras(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
 
 function renderStats(){
   const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
@@ -1267,6 +1267,7 @@ function matchBusca(e, q){
     .some(v=>String(v||"").toLowerCase().includes(q));
 }
 function renderGestor(){
+  renderEnvioVendedoras();
   atualizarBarra();
   const fFab = document.getElementById("flt-fab").value;
   const fVend = document.getElementById("flt-vend").value;
@@ -2069,21 +2070,22 @@ async function enviarPDFVendedora(vend){
 /* Painel: enviar PDF de em-aberto para cada vendedora */
 function renderEnvioVendedoras(){
   const cont=document.getElementById("envio-vend"); if(!cont) return;
-  if(!ehGestor()){ cont.innerHTML=""; return; }
-  const linhas = VENDEDORAS.map(v=>({v, n:_abertasVend(v).length})).filter(x=>x.n>0);
-  if(!linhas.length){ cont.innerHTML=""; return; }
+  const selVend=document.getElementById("flt-vend");
+  const fVend=selVend?selVend.value:"";
+  // aparece só quando o gestor filtra por uma vendedora específica
+  if(!ehGestor() || !fVend){ cont.innerHTML=""; return; }
+  const n=_abertasVend(fVend).length;
+  if(!n){ cont.innerHTML=""; return; }
   cont.innerHTML = `<div class="panel" style="margin-top:16px">
-    <h2>Enviar PDF de encomendas em aberto</h2>
-    <p class="hint">Um PDF por vendedora, com todos os pedidos dela que ainda não chegaram. No celular, \u201cEnviar\u201d abre o WhatsApp já com o PDF anexado.</p>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      ${linhas.map(x=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;border:1px solid var(--linha);border-radius:12px;padding:10px 12px">
-        <div><b style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--creme)">${esc(x.v)}</b>
-        <span class="count" style="margin-left:8px">${x.n} em aberto</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost sm" onclick="gerarPDFVendedora('${esc(x.v)}')">\ud83d\udcc4 Baixar PDF</button>
-          <button class="btn sm wa" onclick="enviarPDFVendedora('${esc(x.v)}')">${WA_ICON} Enviar</button>
-        </div>
-      </div>`).join("")}
+    <h2>Enviar PDF \u2014 ${esc(fVend)}</h2>
+    <p class="hint">Todas as encomendas em aberto de ${esc(fVend)}. No celular, \u201cEnviar\u201d abre o WhatsApp j\u00e1 com o PDF anexado.</p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;border:1px solid var(--linha);border-radius:12px;padding:10px 12px">
+      <div><b style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--creme)">${esc(fVend)}</b>
+      <span class="count" style="margin-left:8px">${n} em aberto</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="gerarPDFVendedora('${esc(fVend)}')">\ud83d\udcc4 Baixar PDF</button>
+        <button class="btn sm wa" onclick="enviarPDFVendedora('${esc(fVend)}')">${WA_ICON} Enviar</button>
+      </div>
     </div>
   </div>`;
 }
