@@ -547,6 +547,7 @@ header{border-radius:0 0 18px 18px}
       </div>
     </div>
 
+    <div id="envio-vend"></div>
     <div id="bulk-bar" class="bulk-bar"></div>
     <div id="gestor-list"></div>
   </section>
@@ -1243,7 +1244,7 @@ function statusVisual(enc){
 }
 
 /* ==================== RENDER ==================== */
-function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+function renderTudo(){ renderStats(); renderGestor(); renderEnvioVendedoras(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
 
 function renderStats(){
   const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
@@ -1395,7 +1396,7 @@ function renderRecebidas(){
   const ehVend = currentUser && currentUser.papel==="vendedora";
   if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
   itens = itens.filter(e=>matchBusca(e, valBusca("busca-rec")));
-  itens.sort((a,b)=>b.dataCriacao-a.dataCriacao);
+  itens.sort((a,b)=>(a.dataRecebida||a.dataCriacao||0)-(b.dataRecebida||b.dataCriacao||0));
   const cont = document.getElementById("recebidas-list");
   if(!cont) return;
   if(itens.length===0){
@@ -1466,7 +1467,10 @@ function avisarVendedora(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
   const msg = msgVendedora(e);
   const tel = telVendedora(e.vendedora);
-  if(tel){ window.open(`https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg)}`,"_blank"); }
+  if(tel){
+    const w = window.open(`https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg)}`,"_blank");
+    if(!w){ try{ navigator.clipboard.writeText(msg); toast("Não consegui abrir o WhatsApp — mensagem copiada"); }catch(_){ prompt("Copie a mensagem:", msg); } }
+  }
   else { navigator.clipboard.writeText(msg).then(()=>toast("Vendedora sem número cadastrado — mensagem copiada"))
     .catch(()=>prompt("Copie a mensagem:", msg)); }
 }
@@ -1474,6 +1478,65 @@ function copiarMsgVendedora(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
   navigator.clipboard.writeText(msgVendedora(e)).then(()=>toast("Mensagem copiada ✔"))
     .catch(()=>prompt("Copie a mensagem:", msgVendedora(e)));
+}
+/* POPUP: gestor/operação avisa a vendedora que a encomenda dela chegou */
+function popupAvisarVendedora(id){
+  const e = encomendas.find(x=>x.id===id); if(!e) return;
+  const msg = msgVendedora(e);
+  const tel = telVendedora(e.vendedora);
+  const acao = tel
+    ? `<button class="btn wa" style="flex:1;min-width:200px" onclick="avisarVendedora('${id}'); closeModal()">${WA_ICON} Avisar ${e.vendedora} agora</button>`
+    : `<button class="btn wa" style="flex:1;min-width:200px" onclick="copiarMsgVendedora('${id}');closeModal()">${WA_ICON} Copiar aviso</button>`;
+  openModal(`
+    <h2>Sapato recebido ✔</h2>
+    <p class="hint">Avise a vendedora <b>${e.vendedora}</b> que a encomenda chegou — ela já avisa o cliente para a retirada.</p>
+    <div class="oc-obs" style="white-space:pre-line;margin:12px 0">${String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\*/g,"")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${acao}
+      <button class="btn ghost" onclick="closeModal()">Agora não</button>
+    </div>
+  `);
+}
+/* mensagem consolidada quando chegam vários pedidos da mesma vendedora */
+function msgVendedoraLote(vend, itens){
+  if(itens.length===1) return msgVendedora(itens[0]);
+  let t = `Olá, ${vend}!\n\nChegaram na loja ${itens.length} encomendas suas:\n`;
+  itens.forEach((e,i)=>{
+    const modelo=[e.modelo, e.numeracao?`(Num ${e.numeracao})`:""].filter(Boolean).join(" ")||"encomenda";
+    const cli=e.cliente?` — cliente ${e.cliente.trim().split(/\s+/)[0]}`:"";
+    t += `\n${i+1}) ${modelo}${cli}`;
+  });
+  t += `\n\nJá pode avisar os clientes para a retirada.`;
+  return t;
+}
+/* POPUP em lote: agrupa por vendedora e mostra um botão para cada uma */
+function popupAvisarVendedorasLote(itens){
+  const porVend = {};
+  itens.forEach(e=>{ (porVend[e.vendedora]=porVend[e.vendedora]||[]).push(e); });
+  const nomes = Object.keys(porVend);
+  if(nomes.length===0) return;
+  if(nomes.length===1 && porVend[nomes[0]].length===1){ popupAvisarVendedora(itens[0].id); return; }
+  window._avisoLotes = {};
+  const botoes = nomes.map(nome=>{
+    const lista=porVend[nome];
+    const msg=msgVendedoraLote(nome, lista);
+    window._avisoLotes[nome]=msg;
+    const tel=telVendedora(nome);
+    return tel
+      ? `<a class="btn wa" style="text-align:center;text-decoration:none" href="https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg)}" target="_blank">${WA_ICON} Avisar ${nome} (${lista.length})</a>`
+      : `<button class="btn ghost" onclick="copiarAvisoLote('${nome}')">${nome} — sem número, copiar aviso</button>`;
+  }).join("");
+  openModal(`
+    <h2>Encomendas recebidas ✔</h2>
+    <p class="hint">Avise cada vendedora que os pedidos dela chegaram:</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${botoes}</div>
+    <div style="margin-top:12px"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>
+  `);
+}
+function copiarAvisoLote(nome){
+  const msg=(window._avisoLotes||{})[nome]||"";
+  navigator.clipboard.writeText(msg).then(()=>toast(`Aviso de ${nome} copiado ✔`))
+    .catch(()=>prompt("Copie a mensagem:", msg));
 }
 
 function avisarCliente(id){
@@ -1641,9 +1704,9 @@ async function mudarStatus(id, status){
   if(status==="finalizada") patch.dataFinalizada = agora;
   if(status==="cancelada")  patch.dataCancelada = agora;
   await atualizar(id, patch);
-  // aviso à vendedora em um toque quando o gestor marca recebida
+  // popup para o gestor/operação avisar a vendedora quando marca recebida
   if(status==="recebida" && e && ehGestor()){
-    setTimeout(()=>{ if(confirm(`Sapato recebido! Avisar a vendedora ${e.vendedora} pelo WhatsApp agora?`)) avisarVendedora(id); }, 150);
+    setTimeout(()=>popupAvisarVendedora(id), 150);
   }
 }
 async function voltarAndamento(id){
@@ -1773,16 +1836,22 @@ function atualizarBarra(){
 async function bulkStatus(status){
   const ids=[...selecionados]; if(ids.length===0) return;
   const agora=Date.now();
+  const recebidasNovas=[];
   for(const id of ids){
     const e=encomendas.find(x=>x.id===id); if(!e) continue;
+    const eraRecebida = e.status==="recebida";
     const patch={status};
     if(status==="enviada"  && !e.dataEnvio)    patch.dataEnvio=agora;
     if(status==="recebida" && !e.dataRecebida) patch.dataRecebida=agora;
     await atualizar(id, patch);
+    if(status==="recebida" && !eraRecebida) recebidasNovas.push(e);
   }
   selecionados.clear();
   renderTudo();
   toast(`${ids.length} encomenda(s) atualizada(s) ✔`);
+  if(status==="recebida" && recebidasNovas.length && ehGestor()){
+    setTimeout(()=>popupAvisarVendedorasLote(recebidasNovas), 200);
+  }
 }
 
 /* ==================== COBRAR FÁBRICA (só dados do sapato) ==================== */
@@ -1871,37 +1940,32 @@ function abrirWhats(fab){
 }
 
 /* ==================== PDF ==================== */
-async function gerarPDF(fab){
-  const itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida")
-                          .sort((a,b)=>a.dataCriacao-b.dataCriacao);
-  if(itens.length===0){ toast("Sem itens em aberto nessa fábrica"); return; }
-
+function _montarPDF(itens, opts){
+  opts = opts || {};
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:"mm",format:"a4"});
   const W=210, M=15; let y=0;
   const verde=[74,92,42], gold=[201,169,80], creme=[244,239,227], cinza=[90,90,90];
 
-  // cabeçalho
   doc.setFillColor(...verde); doc.rect(0,0,W,32,"F");
   doc.setTextColor(...gold); doc.setFont("times","bold"); doc.setFontSize(20);
   doc.text("LORETTO SCARPA", M, 15);
   doc.setTextColor(...creme); doc.setFont("helvetica","normal"); doc.setFontSize(10);
-  doc.text("Pedido de Encomenda", M, 22);
+  doc.text(opts.sub||"Pedido de Encomenda", M, 22);
   doc.setFontSize(9); doc.setTextColor(220,210,180);
-  doc.text(`Fábrica: ${fab}`, M, 28);
+  if(opts.infoEsq) doc.text(opts.infoEsq, M, 28);
   doc.text(`${fmtData(Date.now())}  |  ${itens.length} item(ns)`, W-M, 28, {align:"right"});
   y=42;
 
+  const mostrarFab = !!opts.mostrarFabrica;
   for(let i=0;i<itens.length;i++){
     const e=itens[i];
-    const blocoH=38;
+    const blocoH = mostrarFab ? 44 : 38;
     if(y+blocoH>282){ doc.addPage(); y=20; }
 
-    // moldura
     doc.setDrawColor(...gold); doc.setLineWidth(0.3);
     doc.roundedRect(M, y, W-2*M, blocoH-4, 1.5, 1.5);
 
-    // foto
     if(e.foto){
       try{ doc.addImage(e.foto,"JPEG", M+2, y+2, 30, 30); }
       catch(err){ doc.setFontSize(7);doc.text("(foto)",M+8,y+18); }
@@ -1924,6 +1988,7 @@ async function gerarPDF(fab){
     linha("Numeração", `${e.numeracao||'-'}${e.qtd>1?`  (${e.qtd} pares)`:''}`);
     if(e.cliente) linha("Cliente", e.cliente);
     linha("Vendedora", e.vendedora);
+    if(mostrarFab) linha("Fábrica", e.fabrica || "a alocar");
     if(e.obs) linha("Obs", e.obs);
 
     const d=diasDe(e);
@@ -1935,13 +2000,92 @@ async function gerarPDF(fab){
     y+=blocoH;
   }
 
-  // rodapé
   doc.setFontSize(8); doc.setTextColor(...cinza);
   doc.text(`Prazo combinado: ate ${PRAZO_DIAS} dias.`, M, 290);
+  return doc;
+}
 
-  const nome = `Encomenda_${fab.replace(/[^a-zA-Z0-9]/g,'_')}_${fmtData(Date.now()).replace(/\//g,'-')}.pdf`;
-  doc.save(nome);
-  toast("PDF gerado ✔");
+function _saidaPDF(doc, nome){
+  try{
+    const url = URL.createObjectURL(doc.output("blob"));
+    const w = window.open(url, "_blank");
+    if(!w){ doc.save(nome); }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(_){ doc.save(nome); }
+}
+
+async function gerarPDF(fab){
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue a página e tente de novo."); return; }
+  const fVend = (document.getElementById("flt-vend")||{}).value || "";
+  let itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida");
+  if(fVend) itens = itens.filter(e=>e.vendedora===fVend);
+  itens.sort((a,b)=>a.dataCriacao-b.dataCriacao);
+  if(itens.length===0){ toast(fVend?"Sem itens em aberto dessa vendedora nessa fábrica":"Sem itens em aberto nessa fábrica"); return; }
+  try{
+    const doc = _montarPDF(itens, {sub:"Pedido de Encomenda", infoEsq:`Fábrica: ${fab}`, mostrarFabrica:false});
+    const nome = `Encomenda_${fab.replace(/[^a-zA-Z0-9]/g,'_')}_${fmtData(Date.now()).replace(/\//g,'-')}.pdf`;
+    _saidaPDF(doc, nome);
+    toast("PDF gerado \u2714");
+  }catch(err){ console.error(err); toast("Não consegui gerar o PDF: "+((err&&err.message)||err)); }
+}
+
+/* ---- PDF por vendedora (todas as encomendas em aberto dela) ---- */
+function _abertasVend(vend){
+  return encomendas.filter(e=>(e.status==="aberta"||e.status==="enviada") && e.vendedora===vend)
+                   .sort((a,b)=>a.dataCriacao-b.dataCriacao);
+}
+async function gerarPDFVendedora(vend){
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue e tente de novo."); return; }
+  const itens=_abertasVend(vend);
+  if(!itens.length){ toast(`${vend} não tem encomendas em aberto`); return; }
+  try{
+    const doc=_montarPDF(itens, {sub:"Encomendas em aberto", infoEsq:`Vendedora: ${vend}`, mostrarFabrica:true});
+    _saidaPDF(doc, `Encomendas_${vend.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+    toast("PDF gerado \u2714");
+  }catch(err){ console.error(err); toast("Não consegui gerar o PDF: "+((err&&err.message)||err)); }
+}
+async function enviarPDFVendedora(vend){
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue e tente de novo."); return; }
+  const itens=_abertasVend(vend);
+  if(!itens.length){ toast(`${vend} não tem encomendas em aberto`); return; }
+  const nomeArq=`Encomendas_${vend.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+  const msg=`Olá, ${vend}! Segue o PDF com as suas ${itens.length} encomenda(s) em aberto. Qualquer dúvida me chama.`;
+  let doc;
+  try{ doc=_montarPDF(itens, {sub:"Encomendas em aberto", infoEsq:`Vendedora: ${vend}`, mostrarFabrica:true}); }
+  catch(err){ console.error(err); toast("Não consegui gerar o PDF: "+((err&&err.message)||err)); return; }
+  try{
+    const file=new File([doc.output("blob")], nomeArq, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text:msg, title:"Encomendas em aberto"});
+      return;
+    }
+  }catch(err){ if(err && err.name==="AbortError") return; }
+  _saidaPDF(doc, nomeArq);
+  const tel=telVendedora(vend);
+  if(tel){ setTimeout(()=>window.open(`https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg+" (anexe o PDF que acabou de abrir)")}`,"_blank"), 500); }
+  toast("PDF gerado — anexe no WhatsApp");
+}
+
+/* Painel: enviar PDF de em-aberto para cada vendedora */
+function renderEnvioVendedoras(){
+  const cont=document.getElementById("envio-vend"); if(!cont) return;
+  if(!ehGestor()){ cont.innerHTML=""; return; }
+  const linhas = VENDEDORAS.map(v=>({v, n:_abertasVend(v).length})).filter(x=>x.n>0);
+  if(!linhas.length){ cont.innerHTML=""; return; }
+  cont.innerHTML = `<div class="panel" style="margin-top:16px">
+    <h2>Enviar PDF de encomendas em aberto</h2>
+    <p class="hint">Um PDF por vendedora, com todos os pedidos dela que ainda não chegaram. No celular, \u201cEnviar\u201d abre o WhatsApp já com o PDF anexado.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${linhas.map(x=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;border:1px solid var(--linha);border-radius:12px;padding:10px 12px">
+        <div><b style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--creme)">${esc(x.v)}</b>
+        <span class="count" style="margin-left:8px">${x.n} em aberto</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost sm" onclick="gerarPDFVendedora('${esc(x.v)}')">\ud83d\udcc4 Baixar PDF</button>
+          <button class="btn sm wa" onclick="enviarPDFVendedora('${esc(x.v)}')">${WA_ICON} Enviar</button>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>`;
 }
 
 /* ==================== UTIL ==================== */
@@ -1963,7 +2107,16 @@ function fmtCentavos(v){
 function mascararMoeda(el){ if(el) el.value = fmtCentavos(el.value); }
 function valorMoeda(el){ const v=String((el&&el.value)||"").replace(/\./g,"").replace(",","."); return parseFloat(v)||0; }
 function fmtMoedaInput(v){ v=Number(v)||0; return v?fmtCentavos(String(Math.round(v*100))):""; }
-function waNum(c){ let d=String(c||"").replace(/\D/g,""); if(d && !d.startsWith("55")) d="55"+d; return d; }
+function waNum(c){
+  let d=String(c||"").replace(/\D/g,"");
+  if(!d) return "";
+  if(d.length>=12){ // já vem com o código do país (55)
+    if(d.length===12 && /[6-9]/.test(d[4])) d=d.slice(0,4)+"9"+d.slice(4); // celular sem o 9
+    return d;
+  }
+  if(d.length===10 && /[6-9]/.test(d[2])) d=d.slice(0,2)+"9"+d.slice(2); // DDD + celular sem o 9
+  return "55"+d;
+}
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
 function attr(s){ return String(s==null?"":s).replace(/"/g,"&quot;"); }
 function txt(s){ return String(s==null?"":s).replace(/</g,"&lt;"); }
