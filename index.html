@@ -1736,9 +1736,22 @@ function etiquetaEncomenda(id){
 window.etiquetaEncomenda = etiquetaEncomenda;
 
 /* ==================== ETIQUETAS EM LOTE (PDF 80x60) ==================== */
+/* As fontes padrão do jsPDF (WinAnsi) não têm emoji: os bytes do par
+   substituto viram lixo tipo "Ø=Ü". Tira emoji e símbolos, mantendo
+   acentos e o travessão, que o WinAnsi suporta. */
+function limpaTexto(v){
+  return String(v==null?"":v)
+    .replace(/[\u{1F000}-\u{1FAFF}]/gu, "")                 // emojis
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")                   // símbolos diversos
+    .replace(/[\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, "")   // seletores de variação / ZWJ
+    .replace(/[\u{E000}-\u{F8FF}]/gu, "")                   // uso privado
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function _etqLinhaPDF(doc, e, x, y, larg){
   const verde=[22,36,14], gold=[201,169,80], cinza=[136,136,136];
-  const eh = v => String(v==null?"":v);
+  const eh = v => limpaTexto(v);
   const dataFim = e.dataFinalizada || e.dataRecebida || e.dataCriacao;
   const dataLabel = e.dataFinalizada ? "Finalizada" : (e.dataRecebida ? "Chegou na loja" : "Registrada");
 
@@ -1789,10 +1802,11 @@ function _etqLinhaPDF(doc, e, x, y, larg){
 function _gerarPDFEtiquetas(itens, nomeArq){
   if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue a página e tente de novo."); return null; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:"mm", format:[80,60]});   // 1 etiqueta por página, 80x60mm
-  const M = 5, LARG = 80;
+  const doc = new jsPDF({unit:"mm", format:[80,60], orientation:"landscape"});  // 1 etiqueta/página, 80x60mm
+  const M = 5;
   itens.forEach((e,i)=>{
     if(i>0) doc.addPage([80,60],"landscape");
+    const LARG = doc.internal.pageSize.getWidth();   // lê a largura real da página
     doc.setDrawColor(201,169,80); doc.setLineWidth(0.3);
     doc.roundedRect(2, 2, 76, 56, 1.5, 1.5);
     _etqLinhaPDF(doc, e, M, M, LARG);
