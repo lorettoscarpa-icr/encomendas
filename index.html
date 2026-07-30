@@ -1301,7 +1301,7 @@ function renderGestor(){
   chaves.forEach(fab=>{
     const itens = grupos[fab].sort((a,b)=>a.dataCriacao-b.dataCriacao);
     const naoAlocada = fab==="";
-    const atr = itens.filter(e=>e.status!=="recebida"&&diasDe(e)>PRAZO_DIAS).length;
+    const atr = itens.filter(e=>e.status!=="recebida"&&e.status!=="finalizada"&&e.status!=="cancelada"&&diasDe(e)>PRAZO_DIAS).length;
     const titulo = naoAlocada ? "⚠ A alocar fábrica" : fab;
     const cobrar = (!naoAlocada && atr>0) ? `<button class="btn sm wa" onclick="cobrarFabrica('${esc(fab)}')">${WA_ICON} Cobrar atrasados</button>` : "";
     const acts = naoAlocada ? `<span style="font-size:12px;color:var(--creme-suave);opacity:.8">Defina a fábrica em cada card abaixo</span>` : `
@@ -2075,7 +2075,7 @@ function avisarLembrete(id){
 
 /* ==================== WHATSAPP ==================== */
 function textoFabrica(fab){
-  const itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida")
+  const itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada")
                           .sort((a,b)=>a.dataCriacao-b.dataCriacao);
   if(itens.length===0) return null;
   let t = `*LORETTO SCARPA — Pedido de Encomenda*\n`;
@@ -2188,7 +2188,7 @@ function _saidaPDF(doc, nome){
 async function gerarPDF(fab){
   if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue a página e tente de novo."); return; }
   const fVend = (document.getElementById("flt-vend")||{}).value || "";
-  let itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida");
+  let itens = encomendas.filter(e=>e.fabrica===fab && e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
   if(fVend) itens = itens.filter(e=>e.vendedora===fVend);
   itens.sort((a,b)=>a.dataCriacao-b.dataCriacao);
   if(itens.length===0){ toast(fVend?"Sem itens em aberto dessa vendedora nessa fábrica":"Sem itens em aberto nessa fábrica"); return; }
