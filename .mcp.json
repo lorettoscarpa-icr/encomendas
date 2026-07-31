@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "Banco_MCP": {
+      "type": "http",
+      "url": "${BANCO_MCP_URL}"
+    }
+  }
+}

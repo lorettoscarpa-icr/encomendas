@@ -1,0 +1,30 @@
+{
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "allow": [
+      "mcp__Banco_MCP__toolkit_info",
+      "mcp__Banco_MCP__connect",
+      "mcp__Banco_MCP__show_version",
+      "mcp__Banco_MCP__openfinance_list_connections",
+      "mcp__Banco_MCP__openfinance_get_item_status",
+      "mcp__Banco_MCP__openfinance_provider_status",
+      "mcp__Banco_MCP__openfinance_list_accounts",
+      "mcp__Banco_MCP__openfinance_get_accounts_detail",
+      "mcp__Banco_MCP__openfinance_get_account_balance",
+      "mcp__Banco_MCP__openfinance_list_transactions",
+      "mcp__Banco_MCP__openfinance_list_transactions_by_item",
+      "mcp__Banco_MCP__openfinance_list_credit_card_bills",
+      "mcp__Banco_MCP__openfinance_get_credit_card_bill",
+      "mcp__Banco_MCP__openfinance_list_categories"
+    ],
+    "ask": [
+      "mcp__Banco_MCP__openfinance_force_sync",
+      "mcp__Banco_MCP__openfinance_update_transaction_category",
+      "mcp__Banco_MCP__subscribe",
+      "mcp__Banco_MCP__marketplace"
+    ],
+    "deny": [
+      "mcp__Banco_MCP__openfinance_disconnect_bank"
+    ]
+  }
+}
