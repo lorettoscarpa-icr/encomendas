@@ -468,6 +468,14 @@ header{border-radius:0 0 18px 18px}
           <label>Modelo do sapato <span style="opacity:.5;text-transform:none">(opcional)</span></label>
           <input id="f-modelo" placeholder="Ex.: Oxford Wholecut Café">
         </div>
+        <div>
+          <label>Tipo do modelo *</label>
+          <select id="f-tipo" onchange="onTipoChange()">
+            <option value="">— Selecione —</option>
+            <option value="fixo">Fixo</option>
+            <option value="colecao">Coleção</option>
+          </select>
+        </div>
         <div class="full">
           <label>Numeração * <span style="opacity:.5;text-transform:none">(toque nos tamanhos)</span></label>
           <input type="hidden" id="f-num">
@@ -500,12 +508,13 @@ header{border-radius:0 0 18px 18px}
         </div>
         <div>
           <label id="lbl-vtotal">Valor total <span style="opacity:.5;text-transform:none">(R$)</span></label>
-          <input id="f-vtotal" type="text" inputmode="numeric" oninput="mascararMoeda(this)" placeholder="Ex.: 289,90">
+          <input id="f-vtotal" type="text" inputmode="numeric" oninput="mascararMoeda(this);atualizarRegraColecao()" placeholder="Ex.: 289,90">
         </div>
         <div>
           <label id="lbl-vpago">Valor pago <span style="opacity:.5;text-transform:none">(R$)</span></label>
-          <input id="f-vpago" type="text" inputmode="numeric" oninput="mascararMoeda(this)" placeholder="Ex.: 100,00">
+          <input id="f-vpago" type="text" inputmode="numeric" oninput="mascararMoeda(this);atualizarRegraColecao()" placeholder="Ex.: 100,00">
         </div>
+        <div class="full" id="tipo-hint" style="display:none"></div>
         <div class="full">
           <label>Observações</label>
           <textarea id="f-obs" placeholder="Cor, ajustes, detalhes de acabamento, solado, etc."></textarea>
@@ -894,6 +903,38 @@ function onPagChange(){
   const opt='<span style="opacity:.5;text-transform:none">(R$)</span>';
   if(lt) lt.innerHTML='Valor total '+((pag==="parcial"||pag==="pago")?req:opt);
   if(lp) lp.innerHTML='Valor pago '+((pag==="parcial")?req:opt);
+  atualizarRegraColecao();
+}
+
+/* Coleção exige sinal de pelo menos 50% do valor do sapato.
+   Fixo pode ficar totalmente em aberto. Mostra o status ao vivo. */
+const SINAL_COLECAO = 0.5;
+function _pagoNoForm(){
+  const pag=(document.getElementById("f-pag")||{}).value||"";
+  const vtotal=valorMoeda(document.getElementById("f-vtotal"));
+  let vpago=valorMoeda(document.getElementById("f-vpago"));
+  if(pag==="pago"&&vtotal>0) vpago=vtotal;   // pago integral = total
+  if(pag==="aberto")         vpago=0;         // em aberto = nada pago
+  return {pag, vtotal, vpago};
+}
+function onTipoChange(){ atualizarRegraColecao(); }
+function atualizarRegraColecao(){
+  const box=document.getElementById("tipo-hint");
+  if(!box) return;
+  const tipo=(document.getElementById("f-tipo")||{}).value||"";
+  if(tipo!=="colecao"){ box.style.display="none"; box.innerHTML=""; return; }
+  const {vtotal, vpago}=_pagoNoForm();
+  const min=vtotal*SINAL_COLECAO;
+  const base="display:block;padding:10px 12px;border-radius:8px;font-size:13px;border:1px solid";
+  box.style.display="block";
+  if(!(vtotal>0)){
+    box.innerHTML=`<div style="${base} var(--ambar);color:var(--ambar)">⚠️ <b>Coleção:</b> informe o <b>valor total</b> para calcular o sinal mínimo de 50%.</div>`;
+    return;
+  }
+  const ok = vpago+0.005 >= min;
+  box.innerHTML = ok
+    ? `<div style="${base} #6bbf73;color:#8fd694">✅ <b>Coleção:</b> sinal de 50% atingido — mínimo ${fmtMoeda(min)}, pago ${fmtMoeda(vpago)}.</div>`
+    : `<div style="${base} var(--ambar);color:var(--ambar)">⚠️ <b>Coleção:</b> exige pelo menos <b>50% pago</b> — mínimo <b>${fmtMoeda(min)}</b>. Pago até agora: ${fmtMoeda(vpago)}.</div>`;
 }
 
 async function salvarEncomenda(){
@@ -904,11 +945,12 @@ async function salvarEncomenda(){
   const cliente = document.getElementById("f-cliente").value.trim();
   const contato = document.getElementById("f-contato").value.trim();
   const pag = document.getElementById("f-pag").value;
+  const tipo = document.getElementById("f-tipo").value;
   const vtotal = valorMoeda(document.getElementById("f-vtotal"));
   let vpago = valorMoeda(document.getElementById("f-vpago"));
 
   // valida tudo de uma vez e mostra a lista do que está faltando
-  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const nbBox=document.getElementById("numBtns"); if(nbBox) nbBox.classList.remove("err-box");
   const pZone=document.getElementById("photoZone"); if(pZone) pZone.classList.remove("err-box");
   const faltando=[]; const marca=id=>{const el=document.getElementById(id); if(el) el.classList.add("err");};
@@ -927,6 +969,18 @@ async function salvarEncomenda(){
     else vpago=vtotal; // pago integral: pago = total
   } else if(pag==="aberto"){
     vpago=0; // em aberto: nada pago ainda
+  }
+
+  // tipo do modelo: fixo pode ficar em aberto; coleção exige sinal de 50%
+  if(!tipo){ faltando.push("Tipo do modelo (fixo ou coleção)"); marca("f-tipo"); }
+  else if(tipo==="colecao"){
+    if(!(vtotal>0)){
+      faltando.push("Valor total do sapato — obrigatório em coleção para calcular o sinal de 50%");
+      marca("f-vtotal"); marca("f-tipo");
+    } else if(!(vpago+0.005 >= vtotal*SINAL_COLECAO)){
+      faltando.push(`Coleção exige pelo menos 50% pago — mínimo ${fmtMoeda(vtotal*SINAL_COLECAO)}, pago até agora ${fmtMoeda(vpago)}`);
+      marca("f-vpago"); marca("f-pag"); marca("f-tipo");
+    }
   }
 
   const box=document.getElementById("form-erros");
@@ -950,6 +1004,7 @@ async function salvarEncomenda(){
     fabrica: "",
     cliente: cliente,
     contato: contato,
+    tipoModelo: tipo,
     pagamento: pag,
     valorTotal: vtotal,
     valorPago: vpago,
@@ -1003,6 +1058,7 @@ function msgPedidosCliente(itens){
       `Numeração: ${r0.numeracao}${r0.qtd>1?` · ${r0.qtd} pares`:""}`,
       r0.cliente ? `Cliente: ${r0.cliente}` : null,
       r0.contato ? `Contato: ${r0.contato}` : null,
+      r0.tipoModelo ? `Tipo: ${r0.tipoModelo==='colecao'?'Coleção':'Fixo'}` : null,
       `Pagamento: ${rotuloPagReg(r0)}`,
       `Registrada em ${fmtData(r0.dataCriacao)}`
     ].filter(Boolean).join("\n");
@@ -1088,8 +1144,9 @@ function limparForm(){
   document.getElementById("f-qtd").value=1;
   document.getElementById("f-vend").selectedIndex=0;
   document.getElementById("f-pag").selectedIndex=0;
+  document.getElementById("f-tipo").selectedIndex=0;
   onPagChange();
-  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const box=document.getElementById("form-erros"); if(box){ box.style.display="none"; box.innerHTML=""; }
   fotoAtual=null;
   document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="color:#e6b8b8;text-transform:none">* obrigatória</span></span>`;
@@ -1341,6 +1398,7 @@ function card(e){
       <div class="badges">
         ${badgeDias}
         <span class="badge b-vend">${e.vendedora||''}</span>
+        ${tipoBadge(e)}
         ${pagBadge(e)}
         ${badgeAviso}
       </div>
@@ -1373,6 +1431,11 @@ function card(e){
 async function liberarSemAviso(id){
   if(!confirm("Marcar esta encomenda como avisada?")) return;
   try{ await atualizar(id, {avisado:true, avisadoEm:Date.now()}); toast("Marcada como avisada ✔"); }catch(_){ toast("Não consegui atualizar"); }
+}
+function tipoBadge(e){
+  if(e.tipoModelo==="colecao") return `<span class="badge" style="border-color:var(--gold);color:var(--gold)">Coleção</span>`;
+  if(e.tipoModelo==="fixo")    return `<span class="badge">Fixo</span>`;
+  return "";
 }
 function pagBadge(e){
   if(isPago(e)) return `<span class="badge b-pago">Pago ✔</span>`;
@@ -1912,6 +1975,11 @@ function editarEncomenda(id){
       <div><label>Numeração</label><input id="ed-num" value="${attr(e.numeracao)}"></div>
       <div><label>Qtd pares</label><input id="ed-qtd" type="number" min="1" value="${e.qtd||1}"></div>
       <div><label>Vendedora</label><select id="ed-vend" ${lockVend?'disabled':''}>${vendOpts}</select></div>
+      <div><label>Tipo do modelo</label><select id="ed-tipo">
+        <option value="" ${!e.tipoModelo?'selected':''}>— Não definido —</option>
+        <option value="fixo" ${e.tipoModelo==='fixo'?'selected':''}>Fixo</option>
+        <option value="colecao" ${e.tipoModelo==='colecao'?'selected':''}>Coleção</option>
+      </select></div>
       <div><label>Cliente</label><input id="ed-cliente" value="${attr(e.cliente)}"></div>
       <div class="full"><label>Contato do cliente</label><input id="ed-contato" value="${attr(e.contato)}"></div>
       <div class="full"><label>Observações</label><textarea id="ed-obs">${txt(e.obs)}</textarea></div>
@@ -1928,6 +1996,7 @@ async function salvarEdicao(id){
     numeracao:document.getElementById("ed-num").value.trim(),
     qtd:      parseInt(document.getElementById("ed-qtd").value)||1,
     vendedora:ehGestor() ? document.getElementById("ed-vend").value : currentUser.nome,
+    tipoModelo:document.getElementById("ed-tipo").value,
     cliente:  document.getElementById("ed-cliente").value.trim(),
     contato:  document.getElementById("ed-contato").value.trim(),
     obs:      document.getElementById("ed-obs").value.trim()
