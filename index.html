@@ -284,21 +284,24 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
 
 /* ===== Etiqueta de encomenda (colar no sapato) ===== */
 .etq-print{display:none}
-.etq{width:80mm;min-height:60mm;box-sizing:border-box;padding:5mm 5.5mm;background:#fff;color:#1d2b14;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
+/* Etiqueta impressa em impressora térmica P&B: tudo em preto puro para não sumir. */
+.etq{width:80mm;min-height:60mm;box-sizing:border-box;padding:5mm 5.5mm;background:#fff;color:#000;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
 .etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3mm}
-.etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:13pt;color:#3a4720;line-height:1}
-.etq-selo{font-weight:700;font-size:7pt;letter-spacing:2px;border:1.2px solid #3a4720;color:#3a4720;border-radius:3px;padding:2px 6px;white-space:nowrap}
-.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:16pt;line-height:1.05;color:#16240e;word-break:break-word}
-.etq-contato{font-family:'DM Mono',monospace;font-size:10pt;margin-top:1mm;color:#3a4720}
-.etq-linha{height:1px;background:#c9a950;margin:3mm 0}
-.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.9mm 0;border-bottom:1px dotted #d9d9d9}
+.etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:13pt;color:#000;line-height:1}
+.etq-selo{font-weight:700;font-size:7pt;letter-spacing:2px;border:1.2px solid #000;color:#000;border-radius:3px;padding:2px 6px;white-space:nowrap}
+.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:16pt;line-height:1.05;color:#000;word-break:break-word}
+.etq-contato{font-family:'DM Mono',monospace;font-size:10pt;margin-top:1mm;color:#000}
+.etq-linha{height:0.5mm;background:#000;margin:3mm 0}
+.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.9mm 0;border-bottom:0.3mm solid #000}
 .etq-row:last-child{border-bottom:none}
-.etq-row .k{color:#888;text-transform:uppercase;letter-spacing:.5px;font-size:7.5pt;align-self:center;white-space:nowrap}
-.etq-row .v{font-weight:600;text-align:right;color:#16240e;font-size:10pt}
+.etq-row .k{color:#000;text-transform:uppercase;letter-spacing:.5px;font-size:7.5pt;align-self:center;white-space:nowrap}
+.etq-row .v{font-weight:600;text-align:right;color:#000;font-size:10pt}
 @media print{
   html,body{margin:0!important;padding:0!important;background:#fff!important}
   body>*{display:none!important}
   body.printing-etq #etq-print{display:flex!important;align-items:flex-start;justify-content:center}
+  /* força impressão dos traços/fundos pretos da etiqueta na térmica P&B */
+  .etq,.etq *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   @page{size:80mm 60mm;margin:0}
 }
 
@@ -1813,7 +1816,9 @@ function limpaTexto(v){
 }
 
 function _etqLinhaPDF(doc, e, x, y, larg){
-  const verde=[22,36,14], gold=[201,169,80], cinza=[136,136,136];
+  // Impressora térmica é preto-e-branco (1 bit): tons claros (dourado/cinza) saem
+  // falhados ou somem. Tudo em preto puro para a etiqueta imprimir completa, como no PDF.
+  const verde=[0,0,0], gold=[0,0,0], cinza=[0,0,0];
   const eh = v => limpaTexto(v);
   const dataFim = e.dataFinalizada || e.dataRecebida || e.dataCriacao;
   const dataLabel = e.dataFinalizada ? "Finalizada" : (e.dataRecebida ? "Chegou na loja" : "Registrada");
@@ -1821,9 +1826,9 @@ function _etqLinhaPDF(doc, e, x, y, larg){
   /* cabeçalho: marca + selo ENCOMENDA */
   doc.setFont("times","bold"); doc.setFontSize(11); doc.setTextColor(...verde);
   doc.text("Loretto Scarpa", x, y+6);
-  doc.setDrawColor(58,71,32); doc.setLineWidth(0.25);
+  doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
   doc.roundedRect(larg-x-21, y+2.4, 21, 4.6, 0.8, 0.8);
-  doc.setFont("helvetica","bold"); doc.setFontSize(6); doc.setTextColor(58,71,32);
+  doc.setFont("helvetica","bold"); doc.setFontSize(6); doc.setTextColor(0,0,0);
   doc.text("ENCOMENDA", larg-x-19, y+5.6);
 
   /* cliente — encolhe a fonte se o nome for longo, pra caber em 1 linha */
@@ -1837,7 +1842,7 @@ function _etqLinhaPDF(doc, e, x, y, larg){
   let ly = y+13 + (Math.min(cli.length,2)-1)*(fs*0.36);
 
   if(e.contato){
-    doc.setFont("courier","normal"); doc.setFontSize(8); doc.setTextColor(58,71,32);
+    doc.setFont("courier","normal"); doc.setFontSize(8); doc.setTextColor(0,0,0);
     doc.text(eh(e.contato), x, ly+4.4); ly += 4.4;
   }
 
@@ -1852,7 +1857,7 @@ function _etqLinhaPDF(doc, e, x, y, larg){
     doc.text(String(k).toUpperCase(), x, ly);
     doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...verde);
     doc.text(String(v), larg-x, ly, {align:"right"});
-    doc.setDrawColor(217,217,217); doc.setLineWidth(0.1);
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.15);
     doc.line(x, ly+1.5, larg-x, ly+1.5);
     ly += 5.2;
   };
@@ -1870,7 +1875,7 @@ function _gerarPDFEtiquetas(itens, nomeArq){
   itens.forEach((e,i)=>{
     if(i>0) doc.addPage([80,60],"landscape");
     const LARG = doc.internal.pageSize.getWidth();   // lê a largura real da página
-    doc.setDrawColor(201,169,80); doc.setLineWidth(0.3);
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
     doc.roundedRect(2, 2, 76, 56, 1.5, 1.5);
     _etqLinhaPDF(doc, e, M, M, LARG);
   });
