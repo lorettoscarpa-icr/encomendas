@@ -1566,14 +1566,19 @@ function msgCliente(e){
 function telVendedora(nome){ const u=USUARIOS.find(x=>x.papel==="vendedora"&&x.nome===nome); return u?u.tel:""; }
 function msgVendedora(e){
   const modelo = [e.modelo, e.numeracao?`(Numeração ${e.numeracao})`:""].filter(Boolean).join(" ") || "encomenda";
-  const cliNome = e.cliente ? e.cliente.trim().split(/\s+/)[0] : "";
-  const cli = cliNome ? ` do cliente ${cliNome}` : "";
+  const cliNome = e.cliente ? e.cliente.trim() : "";
   const pago = totalPago(e), saldo = saldoDe(e);
   let pag;
   if(isPago(e)) pag = "Pagamento: *totalmente pago*.";
   else if(pago>0) pag = `Pagamento *parcial*: já recebido ${fmtMoeda(pago)}` + (e.valorTotal>0 ? `, ainda falta *${fmtMoeda(saldo)}*.` : ".");
   else pag = "Pagamento: *em aberto* (nada pago ainda)." + (e.valorTotal>0 ? ` Valor total ${fmtMoeda(e.valorTotal)}.` : "");
-  return `Olá, ${e.vendedora}!\n\nO seu sapato da encomenda *${modelo}*${cli} acabou de chegar na loja.\n\n${pag}\n\nJá pode avisar o cliente para a retirada.`;
+  const wa = waNum(e.contato);
+  const linhaCli = `Cliente: *${cliNome||"não informado"}*`;
+  const linhaContato = wa ? `\n📱 Falar com o cliente: wa.me/${wa}` : `\nCliente sem contato cadastrado.`;
+  const fecho = wa
+    ? "Clique no link acima para avisar o cliente que o pedido está disponível para retirada."
+    : "Já pode avisar o cliente para a retirada.";
+  return `Olá, ${e.vendedora}!\n\nO seu sapato da encomenda *${modelo}* acabou de chegar na loja. 🎉\n\n${linhaCli}${linhaContato}\n\n${pag}\n\n${fecho}`;
 }
 function avisarVendedora(id){
   const e = encomendas.find(x=>x.id===id); if(!e) return;
@@ -1615,10 +1620,12 @@ function msgVendedoraLote(vend, itens){
   let t = `Olá, ${vend}!\n\nChegaram na loja ${itens.length} encomendas suas:\n`;
   itens.forEach((e,i)=>{
     const modelo=[e.modelo, e.numeracao?`(Num ${e.numeracao})`:""].filter(Boolean).join(" ")||"encomenda";
-    const cli=e.cliente?` — cliente ${e.cliente.trim().split(/\s+/)[0]}`:"";
-    t += `\n${i+1}) ${modelo}${cli}`;
+    const cli=e.cliente?` — cliente *${e.cliente.trim()}*`:"";
+    const wa=waNum(e.contato);
+    const contato = wa ? `\n   📱 Falar com o cliente: wa.me/${wa}` : "";
+    t += `\n${i+1}) ${modelo}${cli}${contato}`;
   });
-  t += `\n\nJá pode avisar os clientes para a retirada.`;
+  t += `\n\nClique nos links para avisar cada cliente que o pedido está disponível para retirada.`;
   return t;
 }
 /* POPUP em lote: agrupa por vendedora e mostra um botão para cada uma */
