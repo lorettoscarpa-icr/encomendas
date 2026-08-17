@@ -2003,14 +2003,20 @@ function editarEncomenda(id){
   `);
 }
 async function salvarEdicao(id){
+  const cliente = document.getElementById("ed-cliente").value.trim();
+  const contato = document.getElementById("ed-contato").value.trim();
+  // cliente e contato são obrigatórios (igual ao cadastro): o aviso de chegada
+  // depende do contato para gerar o link do WhatsApp do cliente.
+  if(!cliente){ toast("Informe o nome do cliente"); document.getElementById("ed-cliente").focus(); return; }
+  if(!contato){ toast("Informe o contato (WhatsApp) do cliente"); document.getElementById("ed-contato").focus(); return; }
   const patch = {
     modelo:   document.getElementById("ed-modelo").value.trim(),
     numeracao:document.getElementById("ed-num").value.trim(),
     qtd:      parseInt(document.getElementById("ed-qtd").value)||1,
     vendedora:ehGestor() ? document.getElementById("ed-vend").value : currentUser.nome,
     tipoModelo:document.getElementById("ed-tipo").value,
-    cliente:  document.getElementById("ed-cliente").value.trim(),
-    contato:  document.getElementById("ed-contato").value.trim(),
+    cliente:  cliente,
+    contato:  contato,
     obs:      document.getElementById("ed-obs").value.trim()
   };
   await atualizar(id, patch);
