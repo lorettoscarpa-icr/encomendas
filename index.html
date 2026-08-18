@@ -285,14 +285,14 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
 /* ===== Etiqueta de encomenda (colar no sapato) ===== */
 .etq-print{display:none}
 /* Etiqueta impressa em impressora térmica P&B: tudo em preto puro para não sumir. */
-.etq{width:80mm;min-height:60mm;box-sizing:border-box;padding:5mm 5.5mm;background:#fff;color:#000;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
-.etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3mm}
-.etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:13pt;color:#000;line-height:1}
+.etq{width:80mm;min-height:50mm;box-sizing:border-box;padding:4mm 5.5mm;background:#fff;color:#000;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
+.etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2mm}
+.etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:12.5pt;color:#000;line-height:1}
 .etq-selo{font-weight:700;font-size:7pt;letter-spacing:2px;border:1.2px solid #000;color:#000;border-radius:3px;padding:2px 6px;white-space:nowrap}
-.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:16pt;line-height:1.05;color:#000;word-break:break-word}
-.etq-contato{font-family:'DM Mono',monospace;font-size:10pt;margin-top:1mm;color:#000}
-.etq-linha{height:0.5mm;background:#000;margin:3mm 0}
-.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.9mm 0;border-bottom:0.3mm solid #000}
+.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:15pt;line-height:1.05;color:#000;word-break:break-word}
+.etq-contato{font-family:'DM Mono',monospace;font-size:9.5pt;margin-top:0.8mm;color:#000}
+.etq-linha{height:0.5mm;background:#000;margin:2mm 0}
+.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.7mm 0;border-bottom:0.3mm solid #000}
 .etq-row:last-child{border-bottom:none}
 .etq-row .k{color:#000;text-transform:uppercase;letter-spacing:.5px;font-size:7.5pt;align-self:center;white-space:nowrap}
 .etq-row .v{font-weight:600;text-align:right;color:#000;font-size:10pt}
@@ -302,7 +302,7 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
   body.printing-etq #etq-print{display:flex!important;align-items:flex-start;justify-content:center}
   /* força impressão dos traços/fundos pretos da etiqueta na térmica P&B */
   .etq,.etq *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  @page{size:80mm 60mm;margin:0}
+  @page{size:80mm 50mm;margin:0}
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1845,18 +1845,18 @@ function _etqLinhaPDF(doc, e, x, y, larg){
   doc.setFontSize(fs);
   while(fs > 9 && doc.getTextWidth(nomeCli) > (larg-2*x)){ fs -= 0.5; doc.setFontSize(fs); }
   const cli = doc.splitTextToSize(nomeCli, larg-2*x);
-  doc.text(cli.slice(0,2), x, y+13);
-  let ly = y+13 + (Math.min(cli.length,2)-1)*(fs*0.36);
+  doc.text(cli.slice(0,2), x, y+12);
+  let ly = y+12 + (Math.min(cli.length,2)-1)*(fs*0.36);
 
   if(e.contato){
     doc.setFont("courier","normal"); doc.setFontSize(8); doc.setTextColor(0,0,0);
-    doc.text(eh(e.contato), x, ly+4.4); ly += 4.4;
+    doc.text(eh(e.contato), x, ly+4); ly += 4;
   }
 
-  /* linha dourada */
+  /* linha divisória */
   doc.setDrawColor(...gold); doc.setLineWidth(0.4);
-  doc.line(x, ly+3, larg-x, ly+3);
-  ly += 7;
+  doc.line(x, ly+2.5, larg-x, ly+2.5);
+  ly += 5.5;
 
   /* linhas de dados */
   const row = (k,v)=>{
@@ -1866,7 +1866,7 @@ function _etqLinhaPDF(doc, e, x, y, larg){
     doc.text(String(v), larg-x, ly, {align:"right"});
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.15);
     doc.line(x, ly+1.5, larg-x, ly+1.5);
-    ly += 5.2;
+    ly += 4.7;
   };
   row("Modelo", eh(e.modelo)||"—");
   row("Numeração", `${eh(e.numeracao)||"—"}${e.qtd>1?` · ${e.qtd} pares`:""}`);
@@ -1877,13 +1877,13 @@ function _etqLinhaPDF(doc, e, x, y, larg){
 function _gerarPDFEtiquetas(itens, nomeArq){
   if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue a página e tente de novo."); return null; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:"mm", format:[80,60], orientation:"landscape"});  // 1 etiqueta/página, 80x60mm
+  const doc = new jsPDF({unit:"mm", format:[80,50], orientation:"landscape"});  // 1 etiqueta/página, 80x50mm
   const M = 5;
   itens.forEach((e,i)=>{
-    if(i>0) doc.addPage([80,60],"landscape");
+    if(i>0) doc.addPage([80,50],"landscape");
     const LARG = doc.internal.pageSize.getWidth();   // lê a largura real da página
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.roundedRect(2, 2, 76, 56, 1.5, 1.5);
+    doc.roundedRect(2, 2, 76, 46, 1.5, 1.5);
     _etqLinhaPDF(doc, e, M, M, LARG);
   });
   doc.save(nomeArq);
