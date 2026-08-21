@@ -581,6 +581,16 @@ header{border-radius:0 0 18px 18px}
       <p class="hint">Modelos que já chegaram da fábrica. O <b>gestor</b> avisa a vendedora pelo botão “Avisar vendedora”. A <b>vendedora</b> vê os próprios modelos e aciona o cliente em “Avisar cliente”. Ao concluir, a vendedora clica em “Finalizar”.</p>
     </div>
     <input id="busca-rec" class="busca-box" placeholder="🔍 Buscar cliente, modelo ou numeração" oninput="renderRecebidas()">
+    <div id="rec-filtro" class="filters panel" style="margin-bottom:12px;display:none">
+      <div class="f" style="flex:2;min-width:200px">
+        <label>Vendedora — recebidas ainda não entregues</label>
+        <select id="flt-vend-rec" onchange="renderRecebidas()"><option value="">Todas as vendedoras</option></select>
+      </div>
+      <div class="f" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap">
+        <button class="btn sm" title="Gerar PDF das recebidas não entregues desta vendedora" onclick="gerarPDFRecebidasVend(document.getElementById('flt-vend-rec').value)">📄 Gerar PDF</button>
+        <button class="btn sm wa" title="Gerar o PDF e abrir o WhatsApp da vendedora" onclick="enviarPDFRecebidasVend(document.getElementById('flt-vend-rec').value)">📲 Enviar pra vendedora</button>
+      </div>
+    </div>
     <div id="recebidas-list"></div>
   </section>
 
@@ -785,6 +795,7 @@ function preencherSelects(){
   const fabOpts  = FABRICAS.map(f=>`<option>${f.nome}</option>`).join("");
   document.getElementById("f-vend").innerHTML = `<option value="" disabled selected>Selecione…</option>`+vendOpts;
   document.getElementById("flt-vend").innerHTML = `<option value="">Todas as vendedoras</option>`+vendOpts;
+  const rv=document.getElementById("flt-vend-rec"); if(rv) rv.innerHTML = `<option value="">Todas as vendedoras</option>`+vendOpts;
   document.getElementById("flt-fab").innerHTML  = `<option value="">Todas as fábricas</option><option value="__none__">⚠ A alocar (sem fábrica)</option>`+fabOpts;
 }
 preencherSelects();
@@ -1463,6 +1474,11 @@ function renderRecebidas(){
   let itens = encomendas.filter(e=>e.status==="recebida");
   const ehVend = currentUser && currentUser.papel==="vendedora";
   if(ehVend) itens = itens.filter(e=>e.vendedora===currentUser.nome);
+  // barra de PDF por vendedora: só para gestor/operação
+  const barra = document.getElementById("rec-filtro");
+  if(barra) barra.style.display = ehVend ? "none" : "flex";
+  const fVendRec = (document.getElementById("flt-vend-rec")||{}).value || "";
+  if(!ehVend && fVendRec) itens = itens.filter(e=>e.vendedora===fVendRec);
   itens = itens.filter(e=>matchBusca(e, valBusca("busca-rec")));
   itens.sort((a,b)=>(b.dataRecebida||b.dataCriacao||0)-(a.dataRecebida||a.dataCriacao||0));
   const cont = document.getElementById("recebidas-list");
@@ -2218,7 +2234,7 @@ function _montarPDF(itens, opts){
   const mostrarFab = !!opts.mostrarFabrica;
   for(let i=0;i<itens.length;i++){
     const e=itens[i];
-    const blocoH = mostrarFab ? 44 : 38;
+    const blocoH = opts.blocoH || (mostrarFab ? 44 : 38);
     if(y+blocoH>282){ doc.addPage(); y=20; }
 
     doc.setDrawColor(...gold); doc.setLineWidth(0.3);
@@ -2245,21 +2261,31 @@ function _montarPDF(itens, opts){
       doc.setFont("helvetica","normal"); doc.text(String(val), x+lw, ly); ly+=5.5; };
     linha("Numeração", `${e.numeracao||'-'}${e.qtd>1?`  (${e.qtd} pares)`:''}`);
     if(e.cliente) linha("Cliente", e.cliente);
-    linha("Vendedora", e.vendedora);
+    if(opts.linhasExtra){ (opts.linhasExtra(e)||[]).forEach(p=>linha(p[0],p[1])); }
+    if(!opts.ocultarVendedora) linha("Vendedora", e.vendedora);
     if(mostrarFab) linha("Fábrica", e.fabrica || "a alocar");
     if(e.obs) linha("Obs", e.obs);
 
-    const d=diasDe(e);
     doc.setFontSize(8.5);
-    if(d>PRAZO_DIAS){ doc.setTextColor(179,64,47); doc.setFont("helvetica","bold");
-      doc.text(`Pedido ha ${d} dias - ATRASADO`, W-M-2, y+8, {align:"right"}); }
-    else { doc.setTextColor(...cinza); doc.text(`Pedido ha ${d} dia(s)`, W-M-2, y+8, {align:"right"}); }
+    if(opts.nota){
+      const n = opts.nota(e) || {};
+      if(n.txt){
+        doc.setTextColor(...(n.alerta?[179,64,47]:cinza));
+        doc.setFont("helvetica", n.alerta?"bold":"normal");
+        doc.text(n.txt, W-M-2, y+8, {align:"right"});
+      }
+    } else {
+      const d=diasDe(e);
+      if(d>PRAZO_DIAS){ doc.setTextColor(179,64,47); doc.setFont("helvetica","bold");
+        doc.text(`Pedido ha ${d} dias - ATRASADO`, W-M-2, y+8, {align:"right"}); }
+      else { doc.setTextColor(...cinza); doc.text(`Pedido ha ${d} dia(s)`, W-M-2, y+8, {align:"right"}); }
+    }
 
     y+=blocoH;
   }
 
   doc.setFontSize(8); doc.setTextColor(...cinza);
-  doc.text(`Prazo combinado: ate ${PRAZO_DIAS} dias.`, M, 290);
+  doc.text(opts.rodape || `Prazo combinado: ate ${PRAZO_DIAS} dias.`, M, 290);
   return doc;
 }
 
@@ -2315,6 +2341,70 @@ async function enviarPDFVendedora(vend){
     const file=new File([doc.output("blob")], nomeArq, {type:"application/pdf"});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], text:msg, title:"Encomendas em aberto"});
+      return;
+    }
+  }catch(err){ if(err && err.name==="AbortError") return; }
+  _saidaPDF(doc, nomeArq);
+  const tel=telVendedora(vend);
+  if(tel){ setTimeout(()=>window.open(`https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg+" (anexe o PDF que acabou de abrir)")}`,"_blank"), 500); }
+  toast("PDF gerado — anexe no WhatsApp");
+}
+
+/* ---- PDF de recebidas ainda não entregues, por vendedora ---- */
+function _recebidasVend(vend){
+  return encomendas.filter(e=>e.status==="recebida" && e.vendedora===vend)
+                   .sort((a,b)=>(a.dataRecebida||a.dataCriacao||0)-(b.dataRecebida||b.dataCriacao||0));
+}
+function _statusPagTxt(e){
+  if(isPago(e)) return "Quitado";
+  if(totalPago(e)>0) return e.valorTotal>0 ? `Parcial — falta ${fmtMoeda(saldoDe(e))}` : "Parcial";
+  return e.valorTotal>0 ? `Em aberto — falta ${fmtMoeda(saldoDe(e))}` : "Em aberto";
+}
+function _optsRecebidasVend(vend){
+  return {
+    sub:"Recebidas — aguardando retirada",
+    infoEsq:`Vendedora: ${vend}`,
+    mostrarFabrica:false,
+    ocultarVendedora:true,   // o PDF já é de uma vendedora só (vai no cabeçalho)
+    blocoH:48,
+    rodape:"Modelos que ja chegaram na loja e ainda nao foram retirados pelo cliente.",
+    linhasExtra:(e)=>{
+      const arr=[];
+      if(e.contato) arr.push(["Contato", e.contato]);
+      arr.push(["Pagamento", _statusPagTxt(e)]);
+      return arr;
+    },
+    nota:(e)=>{
+      const dias=diasDecorridos(e.dataRecebida||e.dataCriacao);
+      return { txt:`Recebida ha ${dias} dia(s)`, alerta: dias>=LEMBRETE_DIAS };
+    }
+  };
+}
+async function gerarPDFRecebidasVend(vend){
+  if(!vend){ toast("Selecione uma vendedora primeiro"); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue e tente de novo."); return; }
+  const itens=_recebidasVend(vend);
+  if(!itens.length){ toast(`${vend} não tem recebidas aguardando retirada`); return; }
+  try{
+    const doc=_montarPDF(itens, _optsRecebidasVend(vend));
+    _saidaPDF(doc, `Recebidas_${vend.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`);
+    toast("PDF gerado ✔");
+  }catch(err){ console.error(err); toast("Não consegui gerar o PDF: "+((err&&err.message)||err)); }
+}
+async function enviarPDFRecebidasVend(vend){
+  if(!vend){ toast("Selecione uma vendedora primeiro"); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){ toast("A biblioteca de PDF não carregou — recarregue e tente de novo."); return; }
+  const itens=_recebidasVend(vend);
+  if(!itens.length){ toast(`${vend} não tem recebidas aguardando retirada`); return; }
+  const nomeArq=`Recebidas_${vend.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+  const msg=`Olá, ${vend}! Segue o PDF com ${itens.length} encomenda(s) suas que já chegaram na loja e ainda não foram retiradas. Pode acionar os clientes para a retirada.`;
+  let doc;
+  try{ doc=_montarPDF(itens, _optsRecebidasVend(vend)); }
+  catch(err){ console.error(err); toast("Não consegui gerar o PDF: "+((err&&err.message)||err)); return; }
+  try{
+    const file=new File([doc.output("blob")], nomeArq, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text:msg, title:"Recebidas — aguardando retirada"});
       return;
     }
   }catch(err){ if(err && err.name==="AbortError") return; }
