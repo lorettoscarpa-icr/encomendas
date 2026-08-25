@@ -1759,6 +1759,7 @@ function cardAndamento(e){
       <button class="icon-btn" title="Editar" onclick="editarEncomenda('${e.id}')">✏️ Editar</button>
       <button class="icon-btn" title="Registrar pagamento" onclick="abrirPagamento('${e.id}')">💰 Pagamento</button>
       <button class="icon-btn" title="Duplicar" onclick="duplicarEncomenda('${e.id}')">⧉ Duplicar</button>
+      <button class="icon-btn del" title="Excluir encomenda" onclick="excluir('${e.id}')">🗑 Excluir</button>
     </div>
   </div>`;
 }
@@ -1983,7 +1984,10 @@ async function mudarFabrica(id, fabrica){
   if(fabrica) toast("Fábrica alocada ✔");
 }
 async function excluir(id){
-  if(!confirm("Excluir esta encomenda?")) return;
+  const e = encomendas.find(x=>x.id===id);
+  // vendedora só pode excluir as próprias encomendas
+  if(e && !ehGestor() && e.vendedora!==currentUser.nome){ toast("Essa encomenda não é sua"); return; }
+  if(!confirm("Excluir esta encomenda? Esta ação não pode ser desfeita.")) return;
   if(usaFirebase){ try{ await db.collection("encomendas").doc(id).delete(); }catch(e){toast("Erro");} }
   else { encomendas=encomendas.filter(e=>e.id!==id); renderTudo(); }
   toast("Encomenda excluída");
