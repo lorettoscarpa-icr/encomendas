@@ -1988,9 +1988,41 @@ async function excluir(id){
   // vendedora só pode excluir as próprias encomendas
   if(e && !ehGestor() && e.vendedora!==currentUser.nome){ toast("Essa encomenda não é sua"); return; }
   if(!confirm("Excluir esta encomenda? Esta ação não pode ser desfeita.")) return;
-  if(usaFirebase){ try{ await db.collection("encomendas").doc(id).delete(); }catch(e){toast("Erro");} }
-  else { encomendas=encomendas.filter(e=>e.id!==id); renderTudo(); }
+  const ehVend = !!(currentUser && currentUser.papel==="vendedora");
+  const snap = e ? Object.assign({}, e) : null;   // guarda os dados antes de apagar
+  if(usaFirebase){ try{ await db.collection("encomendas").doc(id).delete(); }catch(err){ toast("Erro"); return; } }
+  else { encomendas=encomendas.filter(x=>x.id!==id); renderTudo(); }
   toast("Encomenda excluída");
+  // vendedora avisa o gestor que o pedido foi cancelado
+  if(ehVend && snap) popupAvisarGestorCancelamento(snap);
+}
+/* Aviso ao gestor: vendedora cancelou/excluiu um pedido */
+function msgCancelamento(e){
+  const modelo = [e.modelo, e.numeracao?`(Numeração ${e.numeracao})`:""].filter(Boolean).join(" ") || "encomenda";
+  const cli = e.cliente ? `\nCliente: ${e.cliente}` : "";
+  const contato = e.contato ? `\nContato: ${e.contato}` : "";
+  return `❌ *Encomenda cancelada*\n\nVendedora: *${e.vendedora||"—"}*\nModelo: ${modelo}${cli}${contato}\n\nEste pedido foi cancelado e removido do sistema.`;
+}
+function _copiarCancelamento(){
+  const m = window._msgCancelamento||"";
+  navigator.clipboard.writeText(m).then(()=>toast("Aviso copiado ✔")).catch(()=>prompt("Copie o aviso:", m));
+}
+function popupAvisarGestorCancelamento(e){
+  const msg = msgCancelamento(e);
+  window._msgCancelamento = msg;
+  const tel = telGestor();
+  const acao = tel
+    ? `<a class="btn wa" style="flex:1;min-width:200px;text-align:center;text-decoration:none" href="https://wa.me/${waNum(tel)}?text=${encodeURIComponent(msg)}" target="_blank" onclick="closeModal()">${WA_ICON} Avisar o gestor agora</a>`
+    : `<button class="btn wa" style="flex:1;min-width:200px" onclick="_copiarCancelamento();closeModal()">${WA_ICON} Copiar aviso</button>`;
+  openModal(`
+    <h2>Pedido excluído</h2>
+    <p class="hint">Avise o gestor que este pedido foi <b>cancelado</b>.</p>
+    <div class="oc-obs" style="white-space:pre-line;margin:12px 0">${String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\*/g,"")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${acao}
+      <button class="btn ghost" onclick="closeModal()">Agora não</button>
+    </div>
+  `);
 }
 
 /* ==================== EDITAR ENCOMENDA ==================== */
