@@ -262,6 +262,12 @@
 
   /* TOAST */
   /* LOGIN */
+  #carregando{position:fixed;inset:0;z-index:300;background:var(--verde-fundo);
+    display:flex;align-items:center;justify-content:center}
+  #carregando.off{display:none}
+  .roda{width:30px;height:30px;border:2px solid rgba(212,180,90,.22);border-top-color:var(--gold);
+    border-radius:50%;animation:girar .8s linear infinite}
+  @keyframes girar{to{transform:rotate(360deg)}}
   #login{position:fixed;inset:0;background:var(--verde-fundo);z-index:200;
     display:flex;align-items:center;justify-content:center;padding:32px 18px;overflow:auto;
     background-image:radial-gradient(circle at 50% -5%, rgba(212,180,90,.10), transparent 55%),
@@ -428,7 +434,14 @@ header{border-radius:0 0 18px 18px}
 </head>
 <body>
 
-<div id="login">
+<!-- Enquanto o Firebase não diz se já tem alguém logado, esta tela cobre tudo. Sem
+     ela, o "Quem está entrando?" aparecia por um segundo em TODA abertura do painel,
+     inclusive para quem já estava dentro — e dentro da Central isso acontece toda vez
+     que a pessoa troca de aba, porque o painel carrega do zero no iframe.
+     Só a roda: a marca já está na Central, em volta. -->
+<div id="carregando"><div class="roda"></div></div>
+
+<div id="login" style="display:none">
   <div class="login-inner">
     <div class="sel-eyebrow">Bem-vindos</div>
     <h1 class="sel-title">Quem está <em>entrando</em>?</h1>
@@ -768,7 +781,7 @@ if (usaFirebase){
     firebase.auth().onAuthStateChanged(user=>{
       if(user){
         const perfil = USUARIOS.find(x=>x.email.toLowerCase()===(user.email||"").toLowerCase());
-        if(!perfil){ document.getElementById("lg-err").textContent="Esta conta não tem acesso a este painel."; firebase.auth().signOut(); return; }
+        if(!perfil){ mostrarLogin(); document.getElementById("lg-err").textContent="Esta conta não tem acesso a este painel."; firebase.auth().signOut(); return; }
         currentUser = {email:user.email, papel:perfil.papel, nome:perfil.nome};
         iniciarDados();
         entrarApp();
@@ -779,7 +792,11 @@ if (usaFirebase){
         mostrarLogin();
       }
     });
-  }catch(e){ console.error(e); usaFirebase=false; }
+  }catch(e){ console.error(e); usaFirebase=false; fecharEspera(); }
+  /* rede ruim ou Firebase fora do ar: em vez de deixar a roda girando sem fim, cai no
+     login depois de 8s. Quem já tem sessão entra sozinha assim que a resposta chegar. */
+  setTimeout(()=>{ const e=document.getElementById("carregando");
+    if(e && !e.classList.contains("off")) mostrarLogin(); }, 8000);
 }
 function iniciarDados(){
   if(!usaFirebase || unsub) return;
@@ -897,12 +914,17 @@ function confirmarLoginSenha(){
   store.set("ls_user", JSON.stringify(currentUser));
   fecharLoginModal(); entrarApp();
 }
+/* Fechar a espera mora aqui, e não só no boot: qualquer caminho que decida o que
+   mostrar passa por uma destas duas, e nenhum pode deixar a roda girando na tela. */
+function fecharEspera(){ const e=document.getElementById("carregando"); if(e) e.classList.add("off"); }
 function mostrarLogin(){
+  fecharEspera();
   fecharLoginModal();
   document.getElementById("login").style.display="flex";
   document.getElementById("app").style.display="none";
 }
 function entrarApp(){
+  fecharEspera();
   fecharLoginModal();
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
@@ -2587,7 +2609,11 @@ renderTudo();
 // reentra automaticamente: no Firebase o onAuthStateChanged cuida; aqui só o modo demo
 if(!usaFirebase){
   const saved=store.get("ls_user");
-  if(saved){ try{ currentUser=JSON.parse(saved); entrarApp(); }catch(e){} }
+  let entrou=false;
+  if(saved){ try{ currentUser=JSON.parse(saved); entrarApp(); entrou=true; }catch(e){} }
+  /* a tela de escolher perfil agora nasce escondida: sem esta linha, a
+     pré-visualização sem Firebase abriria numa tela vazia */
+  if(!entrou) mostrarLogin();
 }
 </script>
 <div id="etq-print" class="etq-print"></div>
