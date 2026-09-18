@@ -321,14 +321,14 @@ input.err,select.err{border-color:#d67878 !important;box-shadow:0 0 0 2px rgba(2
 /* ===== Etiqueta de encomenda (colar no sapato) ===== */
 .etq-print{display:none}
 /* Etiqueta impressa em impressora térmica P&B: tudo em preto puro para não sumir. */
-.etq{width:80mm;min-height:50mm;box-sizing:border-box;padding:4mm 5.5mm;background:#fff;color:#000;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
-.etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2mm}
+.etq{width:80mm;min-height:50mm;box-sizing:border-box;padding:3.5mm 5mm;background:#fff;color:#000;font-family:'Barlow',sans-serif;display:flex;flex-direction:column}
+.etq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5mm}
 .etq-marca{font-family:'Playfair Display',serif;font-weight:700;font-size:12.5pt;color:#000;line-height:1}
 .etq-selo{font-weight:700;font-size:7pt;letter-spacing:2px;border:1.2px solid #000;color:#000;border-radius:3px;padding:2px 6px;white-space:nowrap}
-.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:15pt;line-height:1.05;color:#000;word-break:break-word}
-.etq-contato{font-family:'DM Mono',monospace;font-size:9.5pt;margin-top:0.8mm;color:#000}
-.etq-linha{height:0.5mm;background:#000;margin:2mm 0}
-.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.7mm 0;border-bottom:0.3mm solid #000}
+.etq-cliente{font-family:'Playfair Display',serif;font-weight:700;font-size:14pt;line-height:1.03;color:#000;word-break:break-word}
+.etq-contato{font-family:'DM Mono',monospace;font-size:9pt;margin-top:0.6mm;color:#000}
+.etq-linha{height:0.5mm;background:#000;margin:1.5mm 0}
+.etq-row{display:flex;justify-content:space-between;gap:5mm;padding:0.5mm 0;border-bottom:0.3mm solid #000}
 .etq-row:last-child{border-bottom:none}
 .etq-row .k{color:#000;text-transform:uppercase;letter-spacing:.5px;font-size:7.5pt;align-self:center;white-space:nowrap}
 .etq-row .v{font-weight:600;text-align:right;color:#000;font-size:10pt}
@@ -513,6 +513,11 @@ header{border-radius:0 0 18px 18px}
         <div>
           <label>Modelo do sapato <span style="opacity:.5;text-transform:none">(opcional)</span></label>
           <input id="f-modelo" placeholder="Ex.: Oxford Wholecut Café">
+        </div>
+        <div>
+          <label>Cor *</label>
+          <input id="f-cor" list="cores-list" autocomplete="off" placeholder="Ex.: Preto, Café, Azul marinho">
+          <datalist id="cores-list"></datalist>
         </div>
         <div>
           <label>Tipo do modelo *</label>
@@ -844,6 +849,18 @@ function preencherSelects(){
   document.getElementById("flt-vend").innerHTML = `<option value="">Todas as vendedoras</option>`+vendOpts;
   const rv=document.getElementById("flt-vend-rec"); if(rv) rv.innerHTML = `<option value="">Todas as vendedoras</option>`+vendOpts;
   document.getElementById("flt-fab").innerHTML  = `<option value="">Todas as fábricas</option><option value="__none__">⚠ A alocar (sem fábrica)</option>`+fabOpts;
+  atualizarCoresList();
+}
+/* sugestões de cor: cores já usadas nas encomendas + uma lista padrão */
+const CORES_PADRAO = ["Preto","Café","Marrom","Castor","Whisky","Conhaque","Caramelo","Tabaco","Mouro","Bordô","Azul marinho","Off white","Branco","Osso","Areia","Cinza","Verde militar","Nobuk preto","All black","All white"];
+function atualizarCoresList(){
+  const el=document.getElementById("cores-list"); if(!el) return;
+  const seen=new Set(); const lista=[];
+  [...(Array.isArray(encomendas)?encomendas.map(e=>e&&e.cor):[]), ...CORES_PADRAO].forEach(c=>{
+    const k=String(c==null?"":c).trim(); const low=k.toLowerCase();
+    if(k && !seen.has(low)){ seen.add(low); lista.push(k); }
+  });
+  el.innerHTML = lista.map(c=>`<option value="${String(c).replace(/"/g,'&quot;')}">`).join("");
 }
 preencherSelects();
 
@@ -1005,6 +1022,7 @@ function atualizarRegraColecao(){
 
 async function salvarEncomenda(){
   const modelo = document.getElementById("f-modelo").value.trim();
+  const cor = document.getElementById("f-cor").value.trim();
   // se quem registra é vendedora, a encomenda sai sempre no nome dela
   const vend = ehGestor() ? document.getElementById("f-vend").value : currentUser.nome;
   const num = document.getElementById("f-num").value.trim();
@@ -1016,12 +1034,13 @@ async function salvarEncomenda(){
   let vpago = valorMoeda(document.getElementById("f-vpago"));
 
   // valida tudo de uma vez e mostra a lista do que está faltando
-  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-cor","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const nbBox=document.getElementById("numBtns"); if(nbBox) nbBox.classList.remove("err-box");
   const pZone=document.getElementById("photoZone"); if(pZone) pZone.classList.remove("err-box");
   const faltando=[]; const marca=id=>{const el=document.getElementById(id); if(el) el.classList.add("err");};
   if(!fotoAtual){ faltando.push("Foto do modelo"); if(pZone) pZone.classList.add("err-box"); }
   if(ehGestor() && !vend){ faltando.push("Selecionar a vendedora"); marca("f-vend"); }
+  if(!cor){ faltando.push("Cor do modelo"); marca("f-cor"); }
   if(!num){ faltando.push("Numeração"); marca("f-num"); if(nbBox) nbBox.classList.add("err-box"); }
   if(!cliente){ faltando.push("Nome do cliente"); marca("f-cliente"); }
   if(!contato){ faltando.push("Telefone do cliente"); marca("f-contato"); }
@@ -1064,6 +1083,7 @@ async function salvarEncomenda(){
   const ehVendedora = !!(currentUser && currentUser.papel==="vendedora");
   const reg = {
     modelo,
+    cor,
     numeracao: num,
     qtd: parseInt(document.getElementById("f-qtd").value)||1,
     vendedora: vend,
@@ -1206,13 +1226,13 @@ function adicionarOutroPedido(){
 }
 
 function limparForm(){
-  ["f-modelo","f-num","f-cliente","f-contato","f-vtotal","f-vpago","f-obs"].forEach(id=>document.getElementById(id).value="");
+  ["f-modelo","f-cor","f-num","f-cliente","f-contato","f-vtotal","f-vpago","f-obs"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("f-qtd").value=1;
   document.getElementById("f-vend").selectedIndex=0;
   document.getElementById("f-pag").selectedIndex=0;
   document.getElementById("f-tipo").selectedIndex=0;
   onPagChange();
-  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
+  ["f-vend","f-num","f-cliente","f-contato","f-pag","f-tipo","f-cor","f-vtotal","f-vpago"].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove("err");});
   const box=document.getElementById("form-erros"); if(box){ box.style.display="none"; box.innerHTML=""; }
   fotoAtual=null;
   document.getElementById("photoPreview").innerHTML=`<span>&#128247;&nbsp; Foto do modelo <span style="color:#e6b8b8;text-transform:none">* obrigatória</span></span>`;
@@ -1367,7 +1387,7 @@ function statusVisual(enc){
 }
 
 /* ==================== RENDER ==================== */
-function renderTudo(){ renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
+function renderTudo(){ atualizarCoresList(); renderStats(); renderGestor(); renderAndamento(); renderRecebidas(); renderFinalizadas(); renderFabricas(); }
 
 function renderStats(){
   const abertas = encomendas.filter(e=>e.status!=="recebida" && e.status!=="finalizada" && e.status!=="cancelada");
@@ -1469,6 +1489,7 @@ function card(e){
         ${badgeAviso}
       </div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cor?`<div class="oc-row"><b>Cor</b><span>${e.cor}</span></div>`:''}
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
       ${e.contato?`<div class="oc-row"><b>Contato</b><span><a class="wlink" href="https://wa.me/${waNum(e.contato)}" target="_blank">${e.contato}</a></span></div>`:''}
       <div class="oc-row"><b>Registro</b><span>${fmtData(e.dataCriacao)}${e.dataEnvio?` · envio ${fmtData(e.dataEnvio)}`:''}</span></div>
@@ -1603,6 +1624,7 @@ function cardRecebida(e){
       <div class="modelo">${e.modelo||'—'}</div>
       <div class="badges">${selo}${seloEspera}<span class="badge b-vend">${e.vendedora||''}</span></div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cor?`<div class="oc-row"><b>Cor</b><span>${e.cor}</span></div>`:''}
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
       ${e.contato?`<div class="oc-row"><b>Contato</b><span>${e.contato}</span></div>`:`<div class="oc-row"><b>Contato</b><span style="opacity:.6">não informado</span></div>`}
       ${(!ehVend && e.fabrica)?`<div class="oc-row"><b>Fábrica</b><span>${e.fabrica}</span></div>`:''}
@@ -1802,6 +1824,7 @@ function cardAndamento(e){
         <span class="badge b-vend">${estagio}</span>
       </div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cor?`<div class="oc-row"><b>Cor</b><span>${e.cor}</span></div>`:''}
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
       ${(!ehVend && e.fabrica)?`<div class="oc-row"><b>Fábrica</b><span>${e.fabrica}</span></div>`:''}
       <div class="oc-row"><b>Registro</b><span>${fmtData(e.dataCriacao)}${e.dataEnvio?` · envio ${fmtData(e.dataEnvio)}`:''}</span></div>
@@ -1839,6 +1862,7 @@ function cardFinalizada(e){
       <div class="modelo">${e.modelo||'—'}</div>
       <div class="badges"><span class="badge b-pago">✓ Finalizada</span><span class="badge b-vend">${e.vendedora||''}</span></div>
       <div class="oc-row"><b>Numeração</b><span>${e.numeracao||'—'}${e.qtd>1?` · ${e.qtd} pares`:''}</span></div>
+      ${e.cor?`<div class="oc-row"><b>Cor</b><span>${e.cor}</span></div>`:''}
       ${e.cliente?`<div class="oc-row"><b>Cliente</b><span>${e.cliente}</span></div>`:''}
       ${e.formaEntrega?`<div class="oc-row"><b>${e.formaEntrega==='entrega'?'Entregue':'Retirada'}</b><span>${fmtData(e.dataRetirada||e.dataFinalizada)}</span></div>`:`<div class="oc-row"><b>Concluída</b><span>${fmtData(e.dataFinalizada||e.dataCriacao)}</span></div>`}
     </div>
@@ -1867,6 +1891,7 @@ function etiquetaEncomenda(id){
       ${e.contato?`<div class="etq-contato">${eh(e.contato)}</div>`:""}
       <div class="etq-linha"></div>
       <div class="etq-row"><span class="k">Modelo</span><span class="v">${eh(e.modelo)||"—"}</span></div>
+      <div class="etq-row"><span class="k">Cor</span><span class="v">${eh(e.cor)||"—"}</span></div>
       <div class="etq-row"><span class="k">Numeração</span><span class="v">${eh(e.numeracao)||"—"}${e.qtd>1?` · ${e.qtd} pares`:""}</span></div>
       <div class="etq-row"><span class="k">Vendedora</span><span class="v">${eh(e.vendedora)||"—"}</span></div>
       <div class="etq-row"><span class="k">${dataLabel}</span><span class="v">${fmtData(dataFim)}</span></div>
@@ -1914,18 +1939,18 @@ function _etqLinhaPDF(doc, e, x, y, larg){
   doc.setFontSize(fs);
   while(fs > 9 && doc.getTextWidth(nomeCli) > (larg-2*x)){ fs -= 0.5; doc.setFontSize(fs); }
   const cli = doc.splitTextToSize(nomeCli, larg-2*x);
-  doc.text(cli.slice(0,2), x, y+12);
-  let ly = y+12 + (Math.min(cli.length,2)-1)*(fs*0.36);
+  doc.text(cli.slice(0,2), x, y+11);
+  let ly = y+11 + (Math.min(cli.length,2)-1)*(fs*0.36);
 
   if(e.contato){
     doc.setFont("courier","normal"); doc.setFontSize(8); doc.setTextColor(0,0,0);
-    doc.text(eh(e.contato), x, ly+4); ly += 4;
+    doc.text(eh(e.contato), x, ly+3.8); ly += 3.8;
   }
 
   /* linha divisória */
   doc.setDrawColor(...gold); doc.setLineWidth(0.4);
-  doc.line(x, ly+2.5, larg-x, ly+2.5);
-  ly += 5.5;
+  doc.line(x, ly+2.3, larg-x, ly+2.3);
+  ly += 4.8;
 
   /* linhas de dados */
   const row = (k,v)=>{
@@ -1935,9 +1960,10 @@ function _etqLinhaPDF(doc, e, x, y, larg){
     doc.text(String(v), larg-x, ly, {align:"right"});
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.15);
     doc.line(x, ly+1.5, larg-x, ly+1.5);
-    ly += 4.7;
+    ly += 4.4;
   };
   row("Modelo", eh(e.modelo)||"—");
+  row("Cor", eh(e.cor)||"—");
   row("Numeração", `${eh(e.numeracao)||"—"}${e.qtd>1?` · ${e.qtd} pares`:""}`);
   row("Vendedora", eh(e.vendedora)||"—");
   row(dataLabel, fmtData(dataFim));
@@ -2088,6 +2114,7 @@ function editarEncomenda(id){
     <h2>Editar encomenda</h2>
     <div class="grid" style="margin-top:12px">
       <div class="full"><label>Modelo</label><input id="ed-modelo" value="${attr(e.modelo)}"></div>
+      <div><label>Cor</label><input id="ed-cor" list="cores-list" autocomplete="off" value="${attr(e.cor)}" placeholder="Ex.: Preto, Café"></div>
       <div><label>Numeração</label><input id="ed-num" value="${attr(e.numeracao)}"></div>
       <div><label>Qtd pares</label><input id="ed-qtd" type="number" min="1" value="${e.qtd||1}"></div>
       <div><label>Vendedora</label><select id="ed-vend" ${lockVend?'disabled':''}>${vendOpts}</select></div>
@@ -2109,12 +2136,15 @@ function editarEncomenda(id){
 async function salvarEdicao(id){
   const cliente = document.getElementById("ed-cliente").value.trim();
   const contato = document.getElementById("ed-contato").value.trim();
+  const cor = document.getElementById("ed-cor").value.trim();
   // cliente e contato são obrigatórios (igual ao cadastro): o aviso de chegada
   // depende do contato para gerar o link do WhatsApp do cliente.
+  if(!cor){ toast("Informe a cor do modelo"); document.getElementById("ed-cor").focus(); return; }
   if(!cliente){ toast("Informe o nome do cliente"); document.getElementById("ed-cliente").focus(); return; }
   if(!contato){ toast("Informe o contato (WhatsApp) do cliente"); document.getElementById("ed-contato").focus(); return; }
   const patch = {
     modelo:   document.getElementById("ed-modelo").value.trim(),
+    cor:      cor,
     numeracao:document.getElementById("ed-num").value.trim(),
     qtd:      parseInt(document.getElementById("ed-qtd").value)||1,
     vendedora:ehGestor() ? document.getElementById("ed-vend").value : currentUser.nome,
@@ -2242,7 +2272,7 @@ async function duplicarEncomenda(id){
   if(!ehGestor() && e.vendedora!==currentUser.nome){ toast("Essa encomenda não é sua"); return; }
   if(!confirm("Duplicar esta encomenda para um novo cliente? (mantém modelo, numeração e foto; zera cliente e pagamento)")) return;
   const novo = {
-    modelo:e.modelo, numeracao:e.numeracao, qtd:e.qtd||1, vendedora:(ehGestor()?e.vendedora:currentUser.nome),
+    modelo:e.modelo, cor:e.cor||"", numeracao:e.numeracao, qtd:e.qtd||1, vendedora:(ehGestor()?e.vendedora:currentUser.nome),
     fabrica:e.fabrica||"", cliente:"", contato:"",
     pagamento:"pendente", valorTotal:e.valorTotal||0, valorPago:0, pagamentos:[],
     obs:e.obs||"", foto:e.foto||null, status:"aberta", dataCriacao:Date.now()
